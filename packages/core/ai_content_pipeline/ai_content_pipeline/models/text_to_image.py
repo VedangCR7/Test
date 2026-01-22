@@ -11,6 +11,7 @@ from pathlib import Path
 
 from .base import BaseContentModel, ModelResult
 from ..config.constants import SUPPORTED_MODELS, COST_ESTIMATES, MODEL_RECOMMENDATIONS
+from ..monitoring.metrics import record_request, record_error, increment_counter
 
 
 class UnifiedTextToImageGenerator(BaseContentModel):
@@ -53,16 +54,17 @@ class UnifiedTextToImageGenerator(BaseContentModel):
     def generate(self, prompt: str, model: str = "auto", **kwargs) -> ModelResult:
         """
         Generate image from text using specified model.
-        
+
         Args:
             prompt: Text prompt for image generation
             model: Model to use ("auto" for smart selection)
             **kwargs: Additional generation parameters
-            
+
         Returns:
             ModelResult with generation results
         """
-        self._start_timing()
+        start_time = self._start_timing()
+        increment_counter("text_to_image.requests_total", tags={"model": model})
         
         try:
             # Validate input
@@ -89,7 +91,9 @@ class UnifiedTextToImageGenerator(BaseContentModel):
                 return self._create_error_result(model, f"Unsupported model: {model}")
                 
         except Exception as e:
-            return self._create_error_result(model, f"Generation failed: {str(e)}")
+            error_msg = f"Generation failed: {str(e)}"
+            record_error("text_to_image_error", error_msg, tags={"model": model})
+            return self._create_error_result(model, error_msg)
     
     def _generate_with_unified(self, prompt: str, model: str, **kwargs) -> ModelResult:
         """Generate image using unified generator (supports FAL + Replicate)."""
@@ -316,3 +320,31 @@ class UnifiedTextToImageGenerator(BaseContentModel):
             }
         
         return comparison
+
+    def _create_success_result(self, model: str, output_path: Optional[str] = None,
+                              output_url: Optional[str] = None,
+                              metadata: Optional[Dict[str, Any]] = None) -> ModelResult:
+        """Create a successful result with monitoring."""
+        result = super()._create_success_result(model, output_path, output_url, metadata)
+
+        # Record success metrics
+        increment_counter("text_to_image.success_total", tags={"model": model})
+        record_request(f"text_to_image.{model}", result.processing_time, success=True,
+                      tags={"model": model})
+
+        if metadata and "cost_usd" in metadata:
+            increment_counter("text_to_image.cost_total", metadata["cost_usd"],
+                            tags={"model": model})
+
+        return result
+
+    def _create_error_result(self, model: str, error: str) -> ModelResult:
+        """Create an error result with monitoring."""
+        result = super()._create_error_result(model, error)
+
+        # Record error metrics
+        increment_counter("text_to_image.errors_total", tags={"model": model})
+        record_request(f"text_to_image.{model}", result.processing_time, success=False,
+                      tags={"model": model})
+
+        return result

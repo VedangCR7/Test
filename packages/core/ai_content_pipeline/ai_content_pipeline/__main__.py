@@ -16,6 +16,8 @@ from typing import Optional, Dict, Any
 
 from .pipeline.manager import AIPipelineManager
 from .config.constants import SUPPORTED_MODELS, MODEL_RECOMMENDATIONS
+from .monitoring.metrics import get_registry
+from .monitoring.api import start_monitoring_server, get_metrics_endpoint, get_health_endpoint, get_alerts_endpoint
 
 # Try to import FAL Avatar Generator
 try:
@@ -613,6 +615,19 @@ Examples:
     # List avatar models command
     subparsers.add_parser("list-avatar-models", help="List available avatar generation models")
 
+    # Monitoring commands
+    subparsers.add_parser("start-monitoring", help="Start monitoring API server")
+
+    metrics_parser = subparsers.add_parser("show-metrics", help="Display current metrics")
+    metrics_parser.add_argument("--json", action="store_true", help="Output in JSON format")
+
+    health_parser = subparsers.add_parser("show-health", help="Display system health status")
+    health_parser.add_argument("--json", action="store_true", help="Output in JSON format")
+
+    alerts_parser = subparsers.add_parser("show-alerts", help="Display active alerts")
+    alerts_parser.add_argument("--json", action="store_true", help="Output in JSON format")
+    alerts_parser.add_argument("--resolve", help="Resolve specific alert by ID")
+
     # Analyze video command
     analyze_video_parser = subparsers.add_parser(
         "analyze-video",
@@ -791,8 +806,198 @@ Examples:
         transcribe_command(args)
     elif args.command == "list-speech-models":
         list_speech_models()
+    elif args.command == "start-monitoring":
+        start_monitoring(args)
+    elif args.command == "show-metrics":
+        show_metrics(args)
+    elif args.command == "show-health":
+        show_health(args)
+    elif args.command == "show-alerts":
+        show_alerts(args)
     else:
         parser.print_help()
+        sys.exit(1)
+
+
+def start_monitoring(args):
+    """Start the monitoring API server."""
+    print("[MONITORING] Starting monitoring API server...")
+
+    try:
+        server = start_monitoring_server()
+        print(f"[MONITORING] Server started successfully")
+        print(f"[MONITORING] Metrics: {get_metrics_endpoint()}")
+        print(f"[MONITORING] Health:  {get_health_endpoint()}")
+        print(f"[MONITORING] Alerts:  {get_alerts_endpoint()}")
+        print("[MONITORING] Press Ctrl+C to stop...")
+
+        # Keep running until interrupted
+        import signal
+        import time
+
+        def signal_handler(signum, frame):
+            print("\n[MONITORING] Shutting down server...")
+            server.stop()
+            sys.exit(0)
+
+        signal.signal(signal.SIGINT, signal_handler)
+        signal.signal(signal.SIGTERM, signal_handler)
+
+        while True:
+            time.sleep(1)
+
+    except Exception as e:
+        print(f"[ERROR] Failed to start monitoring server: {e}")
+        sys.exit(1)
+
+
+def show_metrics(args):
+    """Display current metrics."""
+    try:
+        registry = get_registry()
+        metrics_data = registry.get_metrics_snapshot()
+
+        if args.json:
+            print(json.dumps(metrics_data, indent=2, default=str))
+        else:
+            print("[METRICS] Current System Metrics")
+            print("=" * 40)
+            print(f"Uptime: {metrics_data['uptime_seconds']:.1f}s")
+            print(f"Collections: {metrics_data['total_collections']}")
+            print(f"Active Alerts: {metrics_data['active_alerts']}")
+            print(f"Health Score: {metrics_data['health_score']:.2%}")
+
+            if metrics_data['counters']:
+                print(f"\nCounters: {len(metrics_data['counters'])}")
+                for name, value in list(metrics_data['counters'].items())[:5]:
+                    print(f"  {name}: {value}")
+
+            if metrics_data['gauges']:
+                print(f"\nGauges: {len(metrics_data['gauges'])}")
+                for name, value in list(metrics_data['gauges'].items())[:5]:
+                    print(f"  {name}: {value}")
+
+    except Exception as e:
+        print(f"[ERROR] Failed to retrieve metrics: {e}")
+        sys.exit(1)
+
+
+def show_health(args):
+    """Display system health status."""
+    try:
+        registry = get_registry()
+        health_results = registry.run_health_checks()
+        overall_score = registry.get_overall_health_score()
+
+        if args.json:
+            health_data = {
+                "overall_score": overall_score,
+                "checks": {
+                    name: {
+                        "status": check.status.value,
+                        "score": check.score,
+                        "message": check.message,
+                        "checked_at": check.checked_at,
+                        "response_time": check.response_time
+                    }
+                    for name, check in health_results.items()
+                }
+            }
+            print(json.dumps(health_data, indent=2, default=str))
+        else:
+            print("[HEALTH] System Health Status")
+            print("=" * 35)
+            print(f"Overall Score: {overall_score:.2%}")
+
+            status_emoji = {
+                "healthy": "[PASS]",
+                "degraded": "[WARN]",
+                "unhealthy": "[FAIL]",
+                "unknown": "[UNK]"
+            }
+
+            print("
+Health Checks:"            for name, check in health_results.items():
+                emoji = status_emoji.get(check.status.value, "[UNK]")
+                print(f"  {emoji} {name}: {check.score:.2%} - {check.message}")
+
+    except Exception as e:
+        print(f"[ERROR] Failed to check health: {e}")
+        sys.exit(1)
+
+
+def show_alerts(args):
+    """Display active alerts."""
+    try:
+        registry = get_registry()
+
+        if args.resolve:
+            # Resolve specific alert
+            if registry.resolve_alert(args.resolve):
+                print(f"[SUCCESS] Alert '{args.resolve}' resolved")
+            else:
+                print(f"[ERROR] Alert '{args.resolve}' not found")
+            return
+
+        active_alerts = registry.get_active_alerts()
+        alert_history = registry.get_alert_history(limit=10)
+
+        if args.json:
+            alerts_data = {
+                "active_count": len(active_alerts),
+                "active_alerts": [
+                    {
+                        "rule_name": alert.rule_name,
+                        "severity": alert.severity.value,
+                        "message": alert.message,
+                        "value": alert.value,
+                        "threshold": alert.threshold,
+                        "triggered_at": alert.triggered_at,
+                        "tags": alert.tags
+                    }
+                    for alert in active_alerts
+                ],
+                "recent_history": [
+                    {
+                        "rule_name": alert.rule_name,
+                        "severity": alert.severity.value,
+                        "message": alert.message,
+                        "triggered_at": alert.triggered_at,
+                        "resolved_at": alert.resolved_at
+                    }
+                    for alert in alert_history
+                ]
+            }
+            print(json.dumps(alerts_data, indent=2, default=str))
+        else:
+            print("[ALERTS] Active Alert Status")
+            print("=" * 30)
+            print(f"Active Alerts: {len(active_alerts)}")
+
+            if active_alerts:
+                print("\nActive Alerts:")
+                severity_colors = {
+                    "info": "[INFO]",
+                    "warning": "[WARN]",
+                    "error": "[ERROR]",
+                    "critical": "[CRIT]"
+                }
+
+                for alert in active_alerts:
+                    color = severity_colors.get(alert.severity.value, "[UNK]")
+                    print(f"  {color} {alert.rule_name}: {alert.message}")
+                    print(f"      Value: {alert.value}, Threshold: {alert.threshold}")
+            else:
+                print("[PASS] No active alerts")
+
+            if alert_history:
+                print(f"\nRecent History: {len(alert_history)} alerts")
+                for alert in alert_history[-3:]:
+                    resolved = "RESOLVED" if alert.resolved_at else "ACTIVE"
+                    print(f"  {alert.rule_name}: {alert.message[:50]}... ({resolved})")
+
+    except Exception as e:
+        print(f"[ERROR] Failed to retrieve alerts: {e}")
         sys.exit(1)
 
 

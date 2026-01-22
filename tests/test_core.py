@@ -16,49 +16,49 @@ load_dotenv()
 
 def test_package_import():
     """Test that the package can be imported correctly"""
-    print("🧪 Testing Package Import...")
+    print("[TEST] Testing Package Import...")
     try:
         # Test basic imports without initializing generators
         from packages.core.ai_content_pipeline.ai_content_pipeline.utils.validators import validate_prompt
         from packages.core.ai_content_pipeline.ai_content_pipeline.pipeline.chain import StepType
         from packages.core.ai_content_pipeline.ai_content_pipeline.models.base import ModelResult
-        print("✅ Package import successful")
+        print("[PASS] Package import successful")
         return True
     except Exception as e:
-        print(f"❌ Package import failed: {e}")
+        print(f"[FAIL] Package import failed: {e}")
         return False
 
 def test_manager_initialization():
     """Test pipeline manager initialization without API dependencies"""
-    print("🧪 Testing Manager Initialization...")
+    print("[TEST] Testing Manager Initialization...")
     try:
         # Test validation functions instead
         from packages.core.ai_content_pipeline.ai_content_pipeline.utils.validators import validate_prompt
         result = validate_prompt("Test prompt")
-        print(f"✅ Validation function works: {result}")
+        print(f"[PASS] Validation function works: {result}")
         return True, None
     except Exception as e:
-        print(f"❌ Validation test failed: {e}")
+        print(f"[FAIL] Validation test failed: {e}")
         return False, None
 
 def test_model_availability():
     """Test that model types are defined"""
-    print("🧪 Testing Model Types...")
+    print("[TEST] Testing Model Types...")
     try:
         from packages.core.ai_content_pipeline.ai_content_pipeline.pipeline.chain import StepType
         step_types = list(StepType)
-        print(f"✅ Found {len(step_types)} step types: {[s.value for s in step_types[:3]]}...")
+        print(f"[PASS] Found {len(step_types)} step types: {[s.value for s in step_types[:3]]}...")
         return len(step_types) > 0
     except Exception as e:
-        print(f"❌ Model types test failed: {e}")
+        print(f"[FAIL] Model types test failed: {e}")
         return False
 
 def test_chain_creation():
     """Test basic data structures"""
-    print("🧪 Testing Data Structures...")
+    print("[TEST] Testing Data Structures...")
     try:
         from packages.core.ai_content_pipeline.ai_content_pipeline.models.base import ModelResult
-        
+
         # Test ModelResult creation
         result = ModelResult(
             success=True,
@@ -66,15 +66,15 @@ def test_chain_creation():
             processing_time=1.0,
             cost_estimate=0.01
         )
-        print(f"✅ ModelResult created: success={result.success}, model={result.model_used}")
+        print(f"[PASS] ModelResult created: success={result.success}, model={result.model_used}")
         return True
     except Exception as e:
-        print(f"❌ Data structure test failed: {e}")
+        print(f"[FAIL] Data structure test failed: {e}")
         return False
 
 def main():
     """Run core tests"""
-    print("🚀 AI Content Pipeline - Core Tests")
+    print(">>> AI Content Pipeline - Core Tests")
     print("="*50)
     
     tests = [
@@ -95,22 +95,22 @@ def main():
             
             if result:
                 passed += 1
-                print(f"✅ {test_name} - PASSED\n")
+                print(f"[PASS] {test_name} - PASSED\n")
             else:
-                print(f"❌ {test_name} - FAILED\n")
+                print(f"[FAIL] {test_name} - FAILED\n")
         except Exception as e:
-            print(f"❌ {test_name} - ERROR: {e}\n")
+            print(f"[ERROR] {test_name} - ERROR: {e}\n")
     
     # Summary
     print("="*50)
-    print(f"📊 CORE TEST RESULTS: {passed}/{total} tests passed")
-    
+    print(f"[SUMMARY] CORE TEST RESULTS: {passed}/{total} tests passed")
+
     if passed == total:
-        print("🎉 All core tests passed!")
-        print("✅ Package is ready for use")
+        print("[SUCCESS] All core tests passed!")
+        print("[READY] Package is ready for use")
         return 0
     else:
-        print("⚠️  Some core tests failed")
+        print("[WARNING] Some core tests failed")
         return 1
 
 if __name__ == "__main__":

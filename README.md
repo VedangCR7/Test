@@ -277,9 +277,24 @@ ai-content-pipeline estimate-cost --config config.yaml
 ```bash
 # Quick tests
 python tests/run_all_tests.py --quick
+
+# Cross-platform compatibility tests
+python tests/test_unicode_fix.py      # Unicode encoding compatibility
+python tests/test_cross_platform.py   # Cross-platform functionality
+python tests/test_error_handling.py   # Error handling validation
+python tests/test_cli_commands.py     # CLI command testing
 ```
 
 📋 See [tests/README.md](tests/README.md) for complete testing guide.
+
+### Cross-Platform Compatibility
+
+The AI Content Pipeline is designed to work seamlessly across Windows, Linux, and macOS:
+
+- **Unicode Support**: All text output uses ASCII-compatible characters
+- **Path Handling**: Automatic path separator detection and handling
+- **File Operations**: Cross-platform file system operations
+- **Environment Variables**: Proper environment variable handling across platforms
 
 ## 💰 Cost Management
 

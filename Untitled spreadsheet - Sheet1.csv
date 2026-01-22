@@ -1,0 +1,16 @@
+Filter,Rejection Code,Description
+Bot Detection,bot_pr,"Rejects PRs from bot accounts (e.g., dependabot, renovate)"
+Language Check,content_not_in_english,PR title and body must be in English
+Issue Validation,issue_is_a_pr,Linked issue must not be a PR itself
+Issue State,issue_is_not_closed,Linked issue must be closed
+Issue Word Count,issue_word_count,Issue body must have 20-2000 words
+Min Test Files,fewer_than_min_test_fi les,PR must modify ≥1 test file
+Max Non-Test Files,"more_than_max_non_test
+ _files",PR must modify ≤100 non-test files
+Difficulty Check,difficulty_not_hard,PR must change >5 files total
+Max Test Files,too_many_test_files,PR must modify ≤15 test files
+Max Changed Files,too_many_changed_files,PR must change ≤50 code files (excl. data files)
+Patch Retrieval,full_patch_retrieval,Must be able to retrieve diff
+Rust Embedded Tests,rust_embedded_tests,"Rust files must not contain
+ #[test] in source"
+Code Changes,insufficient_code_chan ges,Must have meaningful code changes

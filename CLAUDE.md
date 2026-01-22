@@ -80,6 +80,18 @@ ai-content-pipeline list-video-models
 # Quick smoke tests (30 seconds)
 python tests/test_core.py
 
+# Unicode compatibility tests (cross-platform)
+python tests/test_unicode_fix.py
+
+# Cross-platform functionality tests
+python tests/test_cross_platform.py
+
+# Error handling validation tests
+python tests/test_error_handling.py
+
+# CLI command testing
+python tests/test_cli_commands.py
+
 # Full integration tests (2-3 minutes)
 python tests/test_integration.py
 

@@ -38,7 +38,7 @@ def test_ascii_compatibility():
             "[WARNING] ASCII test warning",
             "[SUMMARY] ASCII compatibility verified",
             "[SUCCESS] All ASCII tests passed",
-            "[READY] Package is ready for use"
+            "[READY] Package is ready for use",
         ]
 
         for message in messages:
@@ -52,11 +52,11 @@ def test_ascii_compatibility():
 
 if __name__ == "__main__":
     print(">>> Unicode Compatibility Tests")
-    print("="*40)
+    print("=" * 40)
 
     tests = [
         ("Unicode Output", test_unicode_output),
-        ("ASCII Compatibility", test_ascii_compatibility)
+        ("ASCII Compatibility", test_ascii_compatibility),
     ]
 
     passed = 0
@@ -70,7 +70,7 @@ if __name__ == "__main__":
         except Exception as e:
             print(f"[ERROR] {test_name} - ERROR: {e}\n")
 
-    print("="*40)
+    print("=" * 40)
     print(f"[SUMMARY] UNICODE TESTS: {passed}/{len(tests)} tests passed")
 
     if passed == len(tests):

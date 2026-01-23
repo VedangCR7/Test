@@ -11,7 +11,9 @@ from pathlib import Path
 
 # Add the fal_image_to_image package to path
 # Note: Directory uses hyphens (image-to-image) which can't be imported via dot notation
-_package_path = Path(__file__).parent.parent / "packages" / "providers" / "fal" / "image-to-image"
+_package_path = (
+    Path(__file__).parent.parent / "packages" / "providers" / "fal" / "image-to-image"
+)
 sys.path.insert(0, str(_package_path))
 
 from fal_image_to_image.utils.validators import (
@@ -19,7 +21,7 @@ from fal_image_to_image.utils.validators import (
     validate_resolution,
     validate_image_urls,
     validate_output_format,
-    validate_num_images
+    validate_num_images,
 )
 
 
@@ -29,8 +31,17 @@ class TestValidateNanoBananaAspectRatio:
     def test_valid_aspect_ratios(self):
         """All 11 aspect ratios should be valid."""
         valid_ratios = [
-            "auto", "21:9", "16:9", "3:2", "4:3", "5:4",
-            "1:1", "4:5", "3:4", "2:3", "9:16"
+            "auto",
+            "21:9",
+            "16:9",
+            "3:2",
+            "4:3",
+            "5:4",
+            "1:1",
+            "4:5",
+            "3:4",
+            "2:3",
+            "9:16",
         ]
         for ratio in valid_ratios:
             result = validate_nano_banana_aspect_ratio(ratio)

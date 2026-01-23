@@ -12,20 +12,20 @@ Note: All external API calls are mocked; these tests do not incur model costs.
 
 import pytest
 from unittest.mock import patch, MagicMock
-from pathlib import Path
 import sys
 import os
 
 # Add package to path
-sys.path.insert(0, os.path.join(
-    os.path.dirname(__file__),
-    '..', 'packages', 'core', 'ai_content_pipeline'
-))
+sys.path.insert(
+    0,
+    os.path.join(
+        os.path.dirname(__file__), "..", "packages", "core", "ai_content_pipeline"
+    ),
+)
 
 from ai_content_pipeline.motion_transfer import (
     check_dependencies,
     upload_if_local,
-    download_video,
     transfer_motion_api,
     transfer_motion,
     MotionTransferResult,
@@ -38,23 +38,23 @@ class TestCheckDependencies:
     """Tests for dependency checking."""
 
     @patch.dict(os.environ, {"FAL_KEY": "test_key"})
-    @patch('ai_content_pipeline.motion_transfer.FAL_CLIENT_AVAILABLE', True)
-    @patch('ai_content_pipeline.motion_transfer.FAL_AVATAR_AVAILABLE', True)
+    @patch("ai_content_pipeline.motion_transfer.FAL_CLIENT_AVAILABLE", True)
+    @patch("ai_content_pipeline.motion_transfer.FAL_AVATAR_AVAILABLE", True)
     def test_all_dependencies_available(self):
         """Test returns success when all dependencies present."""
         ok, error = check_dependencies()
         assert ok is True
         assert error == ""
 
-    @patch('ai_content_pipeline.motion_transfer.FAL_CLIENT_AVAILABLE', False)
+    @patch("ai_content_pipeline.motion_transfer.FAL_CLIENT_AVAILABLE", False)
     def test_missing_fal_client(self):
         """Test returns error when fal-client missing."""
         ok, error = check_dependencies()
         assert ok is False
         assert "fal-client" in error
 
-    @patch('ai_content_pipeline.motion_transfer.FAL_CLIENT_AVAILABLE', True)
-    @patch('ai_content_pipeline.motion_transfer.FAL_AVATAR_AVAILABLE', False)
+    @patch("ai_content_pipeline.motion_transfer.FAL_CLIENT_AVAILABLE", True)
+    @patch("ai_content_pipeline.motion_transfer.FAL_AVATAR_AVAILABLE", False)
     def test_missing_fal_avatar(self):
         """Test returns error when fal_avatar missing."""
         ok, error = check_dependencies()
@@ -62,13 +62,13 @@ class TestCheckDependencies:
         assert "fal_avatar" in error
 
     @patch.dict(os.environ, {}, clear=True)
-    @patch('ai_content_pipeline.motion_transfer.FAL_CLIENT_AVAILABLE', True)
-    @patch('ai_content_pipeline.motion_transfer.FAL_AVATAR_AVAILABLE', True)
+    @patch("ai_content_pipeline.motion_transfer.FAL_CLIENT_AVAILABLE", True)
+    @patch("ai_content_pipeline.motion_transfer.FAL_AVATAR_AVAILABLE", True)
     def test_missing_fal_key(self):
         """Test returns error when FAL_KEY not set."""
         # Clear the FAL_KEY if it exists
-        if 'FAL_KEY' in os.environ:
-            del os.environ['FAL_KEY']
+        if "FAL_KEY" in os.environ:
+            del os.environ["FAL_KEY"]
         ok, error = check_dependencies()
         assert ok is False
         assert "FAL_KEY" in error
@@ -99,7 +99,7 @@ class TestUploadIfLocal:
         with pytest.raises(FileNotFoundError, match="Video not found"):
             upload_if_local("/nonexistent/path.mp4", "video")
 
-    @patch('ai_content_pipeline.motion_transfer.fal_client')
+    @patch("ai_content_pipeline.motion_transfer.fal_client")
     def test_local_file_upload_success(self, mock_fal, tmp_path):
         """Test local files are uploaded to FAL."""
         # Create temp file
@@ -113,7 +113,7 @@ class TestUploadIfLocal:
         assert result == "https://fal.media/uploaded.jpg"
         mock_fal.upload_file.assert_called_once()
 
-    @patch('ai_content_pipeline.motion_transfer.fal_client')
+    @patch("ai_content_pipeline.motion_transfer.fal_client")
     def test_local_file_upload_failure(self, mock_fal, tmp_path):
         """Test handles upload failures gracefully."""
         # Create temp file
@@ -129,6 +129,7 @@ class TestUploadIfLocal:
 # Check if fal_avatar is available for API tests
 try:
     from fal_avatar import FALAvatarGenerator
+
     FAL_AVATAR_AVAILABLE = True
 except ImportError:
     FAL_AVATAR_AVAILABLE = False
@@ -140,10 +141,9 @@ class TestTransferMotionApi:
     @pytest.mark.skipif(not FAL_AVATAR_AVAILABLE, reason="fal_avatar not installed")
     def test_calls_generator_transfer_motion(self):
         """Test API function calls generator correctly."""
-        with patch.object(FALAvatarGenerator, 'transfer_motion') as mock_transfer:
+        with patch.object(FALAvatarGenerator, "transfer_motion") as mock_transfer:
             mock_transfer.return_value = MagicMock(
-                success=True,
-                video_url="https://fal.media/output.mp4"
+                success=True, video_url="https://fal.media/output.mp4"
             )
 
             result = transfer_motion_api(
@@ -151,7 +151,7 @@ class TestTransferMotionApi:
                 video_url="https://example.com/video.mp4",
                 orientation="video",
                 keep_sound=True,
-                prompt="Test prompt"
+                prompt="Test prompt",
             )
 
             mock_transfer.assert_called_once_with(
@@ -165,12 +165,12 @@ class TestTransferMotionApi:
     @pytest.mark.skipif(not FAL_AVATAR_AVAILABLE, reason="fal_avatar not installed")
     def test_passes_default_values(self):
         """Test default values are passed correctly."""
-        with patch.object(FALAvatarGenerator, 'transfer_motion') as mock_transfer:
+        with patch.object(FALAvatarGenerator, "transfer_motion") as mock_transfer:
             mock_transfer.return_value = MagicMock(success=True)
 
             transfer_motion_api(
                 image_url="https://example.com/image.jpg",
-                video_url="https://example.com/video.mp4"
+                video_url="https://example.com/video.mp4",
             )
 
             # Check defaults
@@ -183,7 +183,7 @@ class TestTransferMotionApi:
 class TestTransferMotion:
     """Tests for main transfer_motion function."""
 
-    @patch('ai_content_pipeline.motion_transfer.check_dependencies')
+    @patch("ai_content_pipeline.motion_transfer.check_dependencies")
     def test_returns_error_if_dependencies_missing(self, mock_check):
         """Test returns error when dependencies unavailable."""
         mock_check.return_value = (False, "Missing dependency")
@@ -193,10 +193,10 @@ class TestTransferMotion:
         assert result.success is False
         assert "Missing dependency" in result.error
 
-    @patch('ai_content_pipeline.motion_transfer.check_dependencies')
-    @patch('ai_content_pipeline.motion_transfer.upload_if_local')
-    @patch('ai_content_pipeline.motion_transfer.transfer_motion_api')
-    @patch('ai_content_pipeline.motion_transfer.download_video')
+    @patch("ai_content_pipeline.motion_transfer.check_dependencies")
+    @patch("ai_content_pipeline.motion_transfer.upload_if_local")
+    @patch("ai_content_pipeline.motion_transfer.transfer_motion_api")
+    @patch("ai_content_pipeline.motion_transfer.download_video")
     def test_full_workflow_success(
         self, mock_download, mock_api, mock_upload, mock_check, tmp_path
     ):
@@ -204,7 +204,7 @@ class TestTransferMotion:
         mock_check.return_value = (True, "")
         mock_upload.side_effect = [
             "https://fal.media/image.jpg",
-            "https://fal.media/video.mp4"
+            "https://fal.media/video.mp4",
         ]
         mock_api.return_value = MagicMock(
             success=True,
@@ -212,7 +212,7 @@ class TestTransferMotion:
             duration=10,
             cost=0.60,
             processing_time=45.0,
-            metadata={"orientation": "video"}
+            metadata={"orientation": "video"},
         )
         mock_download.return_value = tmp_path / "output.mp4"
 
@@ -220,7 +220,7 @@ class TestTransferMotion:
             "local_image.jpg",
             "local_video.mp4",
             output_dir=str(tmp_path),
-            download=True
+            download=True,
         )
 
         assert result.success is True
@@ -228,8 +228,8 @@ class TestTransferMotion:
         assert result.duration == 10
         assert result.cost == 0.60
 
-    @patch('ai_content_pipeline.motion_transfer.check_dependencies')
-    @patch('ai_content_pipeline.motion_transfer.upload_if_local')
+    @patch("ai_content_pipeline.motion_transfer.check_dependencies")
+    @patch("ai_content_pipeline.motion_transfer.upload_if_local")
     def test_handles_file_not_found(self, mock_upload, mock_check):
         """Test handles FileNotFoundError."""
         mock_check.return_value = (True, "")
@@ -240,8 +240,8 @@ class TestTransferMotion:
         assert result.success is False
         assert "Image not found" in result.error
 
-    @patch('ai_content_pipeline.motion_transfer.check_dependencies')
-    @patch('ai_content_pipeline.motion_transfer.upload_if_local')
+    @patch("ai_content_pipeline.motion_transfer.check_dependencies")
+    @patch("ai_content_pipeline.motion_transfer.upload_if_local")
     def test_handles_upload_error(self, mock_upload, mock_check):
         """Test handles file upload errors."""
         mock_check.return_value = (True, "")
@@ -252,17 +252,15 @@ class TestTransferMotion:
         assert result.success is False
         assert "Upload failed" in result.error
 
-    @patch('ai_content_pipeline.motion_transfer.check_dependencies')
-    @patch('ai_content_pipeline.motion_transfer.upload_if_local')
-    @patch('ai_content_pipeline.motion_transfer.transfer_motion_api')
+    @patch("ai_content_pipeline.motion_transfer.check_dependencies")
+    @patch("ai_content_pipeline.motion_transfer.upload_if_local")
+    @patch("ai_content_pipeline.motion_transfer.transfer_motion_api")
     def test_handles_api_failure(self, mock_api, mock_upload, mock_check):
         """Test handles API failure."""
         mock_check.return_value = (True, "")
         mock_upload.side_effect = ["https://url1", "https://url2"]
         mock_api.return_value = MagicMock(
-            success=False,
-            error="API rate limit exceeded",
-            processing_time=1.0
+            success=False, error="API rate limit exceeded", processing_time=1.0
         )
 
         result = transfer_motion("image.jpg", "video.mp4")
@@ -270,9 +268,9 @@ class TestTransferMotion:
         assert result.success is False
         assert "rate limit" in result.error.lower()
 
-    @patch('ai_content_pipeline.motion_transfer.check_dependencies')
-    @patch('ai_content_pipeline.motion_transfer.upload_if_local')
-    @patch('ai_content_pipeline.motion_transfer.transfer_motion_api')
+    @patch("ai_content_pipeline.motion_transfer.check_dependencies")
+    @patch("ai_content_pipeline.motion_transfer.upload_if_local")
+    @patch("ai_content_pipeline.motion_transfer.transfer_motion_api")
     def test_skip_download_when_disabled(self, mock_api, mock_upload, mock_check):
         """Test skips download when download=False."""
         mock_check.return_value = (True, "")
@@ -283,14 +281,10 @@ class TestTransferMotion:
             duration=10,
             cost=0.60,
             processing_time=45.0,
-            metadata={}
+            metadata={},
         )
 
-        result = transfer_motion(
-            "image.jpg",
-            "video.mp4",
-            download=False
-        )
+        result = transfer_motion("image.jpg", "video.mp4", download=False)
 
         assert result.success is True
         assert result.local_path is None
@@ -340,7 +334,7 @@ class TestMotionTransferResult:
             success=True,
             video_url="https://example.com/video.mp4",
             duration=10,
-            cost=0.60
+            cost=0.60,
         )
         assert result.success is True
         assert result.error is None
@@ -348,10 +342,7 @@ class TestMotionTransferResult:
 
     def test_failure_result(self):
         """Test creating failure result."""
-        result = MotionTransferResult(
-            success=False,
-            error="Something went wrong"
-        )
+        result = MotionTransferResult(success=False, error="Something went wrong")
         assert result.success is False
         assert result.video_url is None
         assert result.error == "Something went wrong"
@@ -365,7 +356,7 @@ class TestMotionTransferResult:
             duration=10.5,
             cost=0.63,
             processing_time=45.2,
-            metadata={"orientation": "video"}
+            metadata={"orientation": "video"},
         )
         assert result.success is True
         assert result.local_path == "/path/to/video.mp4"

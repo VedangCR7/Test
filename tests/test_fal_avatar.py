@@ -9,12 +9,11 @@ Tests cover:
 """
 
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 # Import avatar module components
 from fal_avatar import FALAvatarGenerator
 from fal_avatar.models import (
-    BaseAvatarModel,
     AvatarGenerationResult,
     OmniHumanModel,
     FabricModel,
@@ -26,7 +25,6 @@ from fal_avatar.models import (
 from fal_avatar.config.constants import (
     MODEL_ENDPOINTS,
     MODEL_PRICING,
-    MODEL_DEFAULTS,
 )
 
 
@@ -407,7 +405,7 @@ class TestFALAvatarGenerator:
         """Test generate_avatar auto-selects text model."""
         generator = FALAvatarGenerator()
         # Mock the generate method to check which model was selected
-        with patch.object(generator, 'generate') as mock_generate:
+        with patch.object(generator, "generate") as mock_generate:
             mock_generate.return_value = AvatarGenerationResult(success=True)
             generator.generate_avatar(
                 image_url="https://example.com/image.jpg",
@@ -420,7 +418,7 @@ class TestFALAvatarGenerator:
     def test_generate_avatar_auto_select_audio(self):
         """Test generate_avatar auto-selects audio model."""
         generator = FALAvatarGenerator()
-        with patch.object(generator, 'generate') as mock_generate:
+        with patch.object(generator, "generate") as mock_generate:
             mock_generate.return_value = AvatarGenerationResult(success=True)
             generator.generate_avatar(
                 image_url="https://example.com/image.jpg",

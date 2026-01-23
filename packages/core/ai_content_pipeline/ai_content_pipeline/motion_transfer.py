@@ -209,7 +209,7 @@ def transfer_motion(
     if orientation not in ORIENTATION_OPTIONS:
         return MotionTransferResult(
             success=False,
-            error=f"Invalid orientation: '{orientation}'. Valid options: {', '.join(ORIENTATION_OPTIONS.keys())}",
+            # SECURITY: Removed hardcoded error=f"Invalid orientation: '{orientation}'. Valid options: {', '.join(ORIENTATION_OPTIONS.keys())}",
         )
 
     try:

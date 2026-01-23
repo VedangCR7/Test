@@ -22,7 +22,7 @@ def test_imports():
     for name, module in modules:
         try:
                     if name == 'FALImageToVideoGenerator':
-            from ..fal_image_to_video_generator import FALImageToVideoGenerator
+        from ..fal_image_to_video_generator import FALImageToVideoGenerator
             else:
                 __import__(module)
             print(f"✅ {name} imported successfully")

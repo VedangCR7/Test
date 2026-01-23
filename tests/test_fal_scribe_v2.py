@@ -9,13 +9,15 @@ Tests cover:
 
 import sys
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 import pytest
 
 # Add paths for imports
 project_root = Path(__file__).parent.parent
-sys.path.insert(0, str(project_root / "packages" / "providers" / "fal" / "speech-to-text"))
+sys.path.insert(
+    0, str(project_root / "packages" / "providers" / "fal" / "speech-to-text")
+)
 
 
 class TestScribeV2Model:
@@ -43,9 +45,7 @@ class TestScribeV2Model:
         from fal_speech_to_text.models import ScribeV2Model
 
         model = ScribeV2Model()
-        params = model.validate_parameters(
-            audio_url="https://example.com/audio.mp3"
-        )
+        params = model.validate_parameters(audio_url="https://example.com/audio.mp3")
 
         assert params["audio_url"] == "https://example.com/audio.mp3"
         assert params["diarize"] is True
@@ -57,8 +57,7 @@ class TestScribeV2Model:
 
         model = ScribeV2Model()
         params = model.validate_parameters(
-            audio_url="https://example.com/audio.mp3",
-            language_code="spa"
+            audio_url="https://example.com/audio.mp3", language_code="spa"
         )
 
         assert params["language_code"] == "spa"
@@ -70,7 +69,7 @@ class TestScribeV2Model:
         model = ScribeV2Model()
         params = model.validate_parameters(
             audio_url="https://example.com/audio.mp3",
-            keyterms=["AI", "machine learning"]
+            keyterms=["AI", "machine learning"],
         )
 
         assert "keyterms" in params
@@ -102,8 +101,7 @@ class TestScribeV2Model:
 
         with pytest.raises(ValueError, match="keyterms must be a list"):
             model.validate_parameters(
-                audio_url="https://example.com/audio.mp3",
-                keyterms="single term"
+                audio_url="https://example.com/audio.mp3", keyterms="single term"
             )
 
     def test_cost_estimation_basic(self):
@@ -149,7 +147,9 @@ class TestScribeV2Constants:
         from fal_speech_to_text.config.constants import MODEL_ENDPOINTS
 
         assert "scribe_v2" in MODEL_ENDPOINTS
-        assert MODEL_ENDPOINTS["scribe_v2"] == "fal-ai/elevenlabs/speech-to-text/scribe-v2"
+        assert (
+            MODEL_ENDPOINTS["scribe_v2"] == "fal-ai/elevenlabs/speech-to-text/scribe-v2"
+        )
 
     def test_display_name_configured(self):
         """Test display name is correctly configured."""
@@ -196,18 +196,43 @@ class TestScribeV2Transcribe:
         model = ScribeV2Model()
 
         # Mock the _call_fal_api method
-        with patch.object(model, '_call_fal_api') as mock_api:
+        with patch.object(model, "_call_fal_api") as mock_api:
             mock_api.return_value = {
                 "success": True,
                 "result": {
                     "text": "Hello world. This is a test.",
                     "words": [
-                        {"word": "Hello", "start": 0.0, "end": 0.5, "speaker": "SPEAKER_1"},
-                        {"word": "world.", "start": 0.5, "end": 1.0, "speaker": "SPEAKER_1"},
-                        {"word": "This", "start": 1.2, "end": 1.4, "speaker": "SPEAKER_1"},
-                        {"word": "is", "start": 1.4, "end": 1.5, "speaker": "SPEAKER_1"},
+                        {
+                            "word": "Hello",
+                            "start": 0.0,
+                            "end": 0.5,
+                            "speaker": "SPEAKER_1",
+                        },
+                        {
+                            "word": "world.",
+                            "start": 0.5,
+                            "end": 1.0,
+                            "speaker": "SPEAKER_1",
+                        },
+                        {
+                            "word": "This",
+                            "start": 1.2,
+                            "end": 1.4,
+                            "speaker": "SPEAKER_1",
+                        },
+                        {
+                            "word": "is",
+                            "start": 1.4,
+                            "end": 1.5,
+                            "speaker": "SPEAKER_1",
+                        },
                         {"word": "a", "start": 1.5, "end": 1.6, "speaker": "SPEAKER_1"},
-                        {"word": "test.", "start": 1.6, "end": 2.0, "speaker": "SPEAKER_1"},
+                        {
+                            "word": "test.",
+                            "start": 1.6,
+                            "end": 2.0,
+                            "speaker": "SPEAKER_1",
+                        },
                     ],
                     "duration": 2.0,
                     "language_code": "eng",
@@ -229,15 +254,30 @@ class TestScribeV2Transcribe:
 
         model = ScribeV2Model()
 
-        with patch.object(model, '_call_fal_api') as mock_api:
+        with patch.object(model, "_call_fal_api") as mock_api:
             mock_api.return_value = {
                 "success": True,
                 "result": {
                     "text": "Hello. Hi there.",
                     "words": [
-                        {"word": "Hello.", "start": 0.0, "end": 0.5, "speaker": "SPEAKER_1"},
-                        {"word": "Hi", "start": 1.0, "end": 1.3, "speaker": "SPEAKER_2"},
-                        {"word": "there.", "start": 1.3, "end": 1.8, "speaker": "SPEAKER_2"},
+                        {
+                            "word": "Hello.",
+                            "start": 0.0,
+                            "end": 0.5,
+                            "speaker": "SPEAKER_1",
+                        },
+                        {
+                            "word": "Hi",
+                            "start": 1.0,
+                            "end": 1.3,
+                            "speaker": "SPEAKER_2",
+                        },
+                        {
+                            "word": "there.",
+                            "start": 1.3,
+                            "end": 1.8,
+                            "speaker": "SPEAKER_2",
+                        },
                     ],
                     "duration": 2.0,
                 },
@@ -245,8 +285,7 @@ class TestScribeV2Transcribe:
             }
 
             result = model.transcribe(
-                audio_url="https://example.com/audio.mp3",
-                diarize=True
+                audio_url="https://example.com/audio.mp3", diarize=True
             )
 
             assert result.success is True
@@ -261,7 +300,7 @@ class TestScribeV2Transcribe:
 
         model = ScribeV2Model()
 
-        with patch.object(model, '_call_fal_api') as mock_api:
+        with patch.object(model, "_call_fal_api") as mock_api:
             mock_api.return_value = {
                 "success": False,
                 "error": "API rate limit exceeded",
@@ -299,7 +338,7 @@ class TestFALSpeechToTextGeneratorIntegration:
         from fal_speech_to_text import FALSpeechToTextGenerator
 
         generator = FALSpeechToTextGenerator()
-        assert hasattr(generator, 'transcribe')
+        assert hasattr(generator, "transcribe")
         assert callable(generator.transcribe)
 
     def test_generator_transcribe_with_diarization_method(self):
@@ -307,7 +346,7 @@ class TestFALSpeechToTextGeneratorIntegration:
         from fal_speech_to_text import FALSpeechToTextGenerator
 
         generator = FALSpeechToTextGenerator()
-        assert hasattr(generator, 'transcribe_with_diarization')
+        assert hasattr(generator, "transcribe_with_diarization")
         assert callable(generator.transcribe_with_diarization)
 
     def test_model_recommendation_quality(self):
@@ -371,8 +410,7 @@ class TestFALSpeechToTextGeneratorIntegration:
 
         generator = FALSpeechToTextGenerator()
         result = generator.transcribe(
-            audio_url="https://example.com/audio.mp3",
-            model="unknown_model"
+            audio_url="https://example.com/audio.mp3", model="unknown_model"
         )
 
         assert result.success is False

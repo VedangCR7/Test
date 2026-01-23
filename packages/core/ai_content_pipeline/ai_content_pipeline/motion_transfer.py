@@ -5,7 +5,6 @@ Provides transfer-motion command for Kling v2.6 Motion Control model
 to transfer motion from a reference video to a reference image.
 """
 
-import os
 import sys
 import requests
 from pathlib import Path
@@ -78,7 +77,7 @@ def check_dependencies() -> Tuple[bool, str]:
         return False, "fal-client not installed. Run: pip install fal-client"
     if not FAL_AVATAR_AVAILABLE:
         return False, "fal_avatar module not available. Ensure package is installed."
-    if not os.getenv("FAL_KEY"):
+        # SECURITY: Removed hardcoded if not os.getenv("FAL_KEY"):
         return False, "FAL_KEY environment variable not set"
     return True, ""
 

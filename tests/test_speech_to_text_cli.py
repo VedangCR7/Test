@@ -8,7 +8,9 @@ from pathlib import Path
 import sys
 
 # Add package path
-sys.path.insert(0, str(Path(__file__).parent.parent / "packages/core/ai_content_pipeline"))
+sys.path.insert(
+    0, str(Path(__file__).parent.parent / "packages/core/ai_content_pipeline")
+)
 
 from ai_content_pipeline.speech_to_text import (
     check_dependencies,
@@ -23,33 +25,33 @@ from ai_content_pipeline.speech_to_text import (
 class TestCheckDependencies:
     """Tests for dependency checking."""
 
-    @patch.dict('os.environ', {'FAL_KEY': 'test-key'})
-    @patch('ai_content_pipeline.speech_to_text.FAL_CLIENT_AVAILABLE', True)
-    @patch('ai_content_pipeline.speech_to_text.FAL_SPEECH_AVAILABLE', True)
+    @patch.dict("os.environ", {"FAL_KEY": "test-key"})
+    @patch("ai_content_pipeline.speech_to_text.FAL_CLIENT_AVAILABLE", True)
+    @patch("ai_content_pipeline.speech_to_text.FAL_SPEECH_AVAILABLE", True)
     def test_all_dependencies_available(self):
         """Test returns success when all dependencies available."""
         ok, error = check_dependencies()
         assert ok is True
         assert error == ""
 
-    @patch('ai_content_pipeline.speech_to_text.FAL_CLIENT_AVAILABLE', False)
+    @patch("ai_content_pipeline.speech_to_text.FAL_CLIENT_AVAILABLE", False)
     def test_missing_fal_client(self):
         """Test returns error when fal-client missing."""
         ok, error = check_dependencies()
         assert ok is False
         assert "fal-client" in error
 
-    @patch('ai_content_pipeline.speech_to_text.FAL_CLIENT_AVAILABLE', True)
-    @patch('ai_content_pipeline.speech_to_text.FAL_SPEECH_AVAILABLE', False)
+    @patch("ai_content_pipeline.speech_to_text.FAL_CLIENT_AVAILABLE", True)
+    @patch("ai_content_pipeline.speech_to_text.FAL_SPEECH_AVAILABLE", False)
     def test_missing_speech_module(self):
         """Test returns error when speech module missing."""
         ok, error = check_dependencies()
         assert ok is False
         assert "fal_speech_to_text" in error
 
-    @patch.dict('os.environ', {}, clear=True)
-    @patch('ai_content_pipeline.speech_to_text.FAL_CLIENT_AVAILABLE', True)
-    @patch('ai_content_pipeline.speech_to_text.FAL_SPEECH_AVAILABLE', True)
+    @patch.dict("os.environ", {}, clear=True)
+    @patch("ai_content_pipeline.speech_to_text.FAL_CLIENT_AVAILABLE", True)
+    @patch("ai_content_pipeline.speech_to_text.FAL_SPEECH_AVAILABLE", True)
     def test_missing_api_key(self):
         """Test returns error when FAL_KEY missing."""
         ok, error = check_dependencies()
@@ -77,7 +79,7 @@ class TestUploadIfLocal:
         with pytest.raises(FileNotFoundError, match="Audio not found"):
             upload_if_local("/nonexistent/audio.mp3")
 
-    @patch('ai_content_pipeline.speech_to_text.fal_client')
+    @patch("ai_content_pipeline.speech_to_text.fal_client")
     def test_local_file_upload(self, mock_fal_client, tmp_path):
         """Test local file is uploaded."""
         # Create temp file
@@ -95,7 +97,7 @@ class TestUploadIfLocal:
 class TestTranscribe:
     """Tests for transcribe function."""
 
-    @patch('ai_content_pipeline.speech_to_text.check_dependencies')
+    @patch("ai_content_pipeline.speech_to_text.check_dependencies")
     def test_dependency_failure(self, mock_check):
         """Test returns error when dependencies unavailable."""
         mock_check.return_value = (False, "Missing dependency")
@@ -105,10 +107,12 @@ class TestTranscribe:
         assert result.success is False
         assert "Missing dependency" in result.error
 
-    @patch('ai_content_pipeline.speech_to_text.check_dependencies')
-    @patch('ai_content_pipeline.speech_to_text.upload_if_local')
-    @patch('ai_content_pipeline.speech_to_text.FALSpeechToTextGenerator')
-    def test_successful_transcription(self, mock_generator_class, mock_upload, mock_check, tmp_path):
+    @patch("ai_content_pipeline.speech_to_text.check_dependencies")
+    @patch("ai_content_pipeline.speech_to_text.upload_if_local")
+    @patch("ai_content_pipeline.speech_to_text.FALSpeechToTextGenerator")
+    def test_successful_transcription(
+        self, mock_generator_class, mock_upload, mock_check, tmp_path
+    ):
         """Test successful transcription workflow."""
         mock_check.return_value = (True, "")
         mock_upload.return_value = "https://fal.media/audio.mp3"
@@ -136,9 +140,9 @@ class TestTranscribe:
         assert result.duration == 5.0
         assert result.txt_path is not None
 
-    @patch('ai_content_pipeline.speech_to_text.check_dependencies')
-    @patch('ai_content_pipeline.speech_to_text.upload_if_local')
-    @patch('ai_content_pipeline.speech_to_text.FALSpeechToTextGenerator')
+    @patch("ai_content_pipeline.speech_to_text.check_dependencies")
+    @patch("ai_content_pipeline.speech_to_text.upload_if_local")
+    @patch("ai_content_pipeline.speech_to_text.FALSpeechToTextGenerator")
     def test_api_failure(self, mock_generator_class, mock_upload, mock_check):
         """Test handling of API failure."""
         mock_check.return_value = (True, "")
@@ -158,7 +162,7 @@ class TestTranscribe:
         assert result.success is False
         assert "rate limit" in result.error.lower()
 
-    @patch('ai_content_pipeline.speech_to_text.check_dependencies')
+    @patch("ai_content_pipeline.speech_to_text.check_dependencies")
     def test_file_not_found(self, mock_check):
         """Test handling of missing file."""
         mock_check.return_value = (True, "")
@@ -211,10 +215,7 @@ class TestTranscriptionCLIResult:
 
     def test_error_result(self):
         """Test error result creation."""
-        result = TranscriptionCLIResult(
-            success=False,
-            error="API error"
-        )
+        result = TranscriptionCLIResult(success=False, error="API error")
         assert result.success is False
         assert result.error == "API error"
         assert result.text == ""

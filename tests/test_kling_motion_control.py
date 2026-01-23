@@ -3,10 +3,9 @@ Unit tests for Kling Video v2.6 Motion Control model.
 """
 
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 from fal_avatar.models.kling import KlingMotionControlModel
-from fal_avatar.models.base import AvatarGenerationResult
 from fal_avatar.config.constants import (
     MODEL_ENDPOINTS,
     MODEL_DISPLAY_NAMES,
@@ -37,7 +36,7 @@ class TestKlingMotionControlModel:
             image_url="https://example.com/image.jpg",
             video_url="https://example.com/video.mp4",
             character_orientation="video",
-            keep_original_sound=True
+            keep_original_sound=True,
         )
         assert params["image_url"] == "https://example.com/image.jpg"
         assert params["video_url"] == "https://example.com/video.mp4"
@@ -48,7 +47,7 @@ class TestKlingMotionControlModel:
         """Test parameter validation uses defaults correctly."""
         params = self.model.validate_parameters(
             image_url="https://example.com/image.jpg",
-            video_url="https://example.com/video.mp4"
+            video_url="https://example.com/video.mp4",
         )
         assert params["character_orientation"] == "video"  # Default
         assert params["keep_original_sound"] is True  # Default
@@ -57,16 +56,14 @@ class TestKlingMotionControlModel:
         """Test validation fails when image_url is missing."""
         with pytest.raises(ValueError, match="image_url is required"):
             self.model.validate_parameters(
-                image_url=None,
-                video_url="https://example.com/video.mp4"
+                image_url=None, video_url="https://example.com/video.mp4"
             )
 
     def test_validate_parameters_missing_video_url(self):
         """Test validation fails when video_url is missing."""
         with pytest.raises(ValueError, match="video_url is required"):
             self.model.validate_parameters(
-                image_url="https://example.com/image.jpg",
-                video_url=None
+                image_url="https://example.com/image.jpg", video_url=None
             )
 
     def test_validate_parameters_invalid_orientation(self):
@@ -75,7 +72,7 @@ class TestKlingMotionControlModel:
             self.model.validate_parameters(
                 image_url="https://example.com/image.jpg",
                 video_url="https://example.com/video.mp4",
-                character_orientation="invalid"
+                character_orientation="invalid",
             )
 
     def test_validate_parameters_with_prompt(self):
@@ -83,7 +80,7 @@ class TestKlingMotionControlModel:
         params = self.model.validate_parameters(
             image_url="https://example.com/image.jpg",
             video_url="https://example.com/video.mp4",
-            prompt="A person dancing gracefully"
+            prompt="A person dancing gracefully",
         )
         assert params["prompt"] == "A person dancing gracefully"
 
@@ -122,12 +119,17 @@ class TestKlingMotionControlConstants:
     def test_endpoint_configured(self):
         """Test endpoint is properly configured."""
         assert "kling_motion_control" in MODEL_ENDPOINTS
-        assert MODEL_ENDPOINTS["kling_motion_control"] == "fal-ai/kling-video/v2.6/standard/motion-control"
+        assert (
+            MODEL_ENDPOINTS["kling_motion_control"]
+            == "fal-ai/kling-video/v2.6/standard/motion-control"
+        )
 
     def test_display_name_configured(self):
         """Test display name is configured."""
         assert "kling_motion_control" in MODEL_DISPLAY_NAMES
-        assert MODEL_DISPLAY_NAMES["kling_motion_control"] == "Kling v2.6 Motion Control"
+        assert (
+            MODEL_DISPLAY_NAMES["kling_motion_control"] == "Kling v2.6 Motion Control"
+        )
 
     def test_pricing_configured(self):
         """Test pricing is configured."""
@@ -169,7 +171,7 @@ class TestKlingMotionControlGenerate:
         """Set up test fixtures."""
         self.model = KlingMotionControlModel()
 
-    @patch.object(KlingMotionControlModel, '_call_fal_api')
+    @patch.object(KlingMotionControlModel, "_call_fal_api")
     def test_generate_success(self, mock_api):
         """Test successful video generation."""
         mock_api.return_value = {
@@ -178,17 +180,17 @@ class TestKlingMotionControlGenerate:
                 "video": {
                     "url": "https://fal.media/output/video.mp4",
                     "file_size": 1024000,
-                    "file_name": "output.mp4"
+                    "file_name": "output.mp4",
                 },
-                "duration": 10
+                "duration": 10,
             },
-            "processing_time": 45.5
+            "processing_time": 45.5,
         }
 
         result = self.model.generate(
             image_url="https://example.com/image.jpg",
             video_url="https://example.com/video.mp4",
-            character_orientation="video"
+            character_orientation="video",
         )
 
         assert result.success is True
@@ -198,18 +200,18 @@ class TestKlingMotionControlGenerate:
         assert result.processing_time == 45.5
         assert result.metadata["character_orientation"] == "video"
 
-    @patch.object(KlingMotionControlModel, '_call_fal_api')
+    @patch.object(KlingMotionControlModel, "_call_fal_api")
     def test_generate_api_failure(self, mock_api):
         """Test handling of API failure."""
         mock_api.return_value = {
             "success": False,
             "error": "API rate limit exceeded",
-            "processing_time": 0.5
+            "processing_time": 0.5,
         }
 
         result = self.model.generate(
             image_url="https://example.com/image.jpg",
-            video_url="https://example.com/video.mp4"
+            video_url="https://example.com/video.mp4",
         )
 
         assert result.success is False
@@ -218,8 +220,7 @@ class TestKlingMotionControlGenerate:
     def test_generate_validation_failure(self):
         """Test handling of validation failure."""
         result = self.model.generate(
-            image_url=None,
-            video_url="https://example.com/video.mp4"
+            image_url=None, video_url="https://example.com/video.mp4"
         )
 
         assert result.success is False

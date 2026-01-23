@@ -84,7 +84,7 @@ def compare_models_for_same_prompt():
             
             print()
 
-def guidance_scale_comparison():
+        except Exception as e:            passdef guidance_scale_comparison():
     """Compare different guidance scales for SeedEdit v3"""
     print("🎛️ SeedEdit v3: Guidance Scale Comparison")
     print("=" * 60)

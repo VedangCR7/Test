@@ -39,18 +39,14 @@ class TestReportGenerator:
             PipelineStep(
                 step_type=StepType.TEXT_TO_IMAGE,
                 model="flux_dev",
-                params={"width": 1024}
+                params={"width": 1024},
             ),
             PipelineStep(
-                step_type=StepType.IMAGE_TO_VIDEO,
-                model="veo_3",
-                params={"duration": 5}
+                step_type=StepType.IMAGE_TO_VIDEO, model="veo_3", params={"duration": 5}
             ),
         ]
         return ContentCreationChain(
-            name="test_chain",
-            steps=steps,
-            config={"output_dir": "output"}
+            name="test_chain", steps=steps, config={"output_dir": "output"}
         )
 
     @pytest.fixture
@@ -63,7 +59,7 @@ class TestReportGenerator:
                 "output_url": "https://example.com/image.png",
                 "processing_time": 10.5,
                 "cost": 0.05,
-                "metadata": {"seed": 12345}
+                "metadata": {"seed": 12345},
             },
             {
                 "success": True,
@@ -71,7 +67,7 @@ class TestReportGenerator:
                 "output_url": "https://example.com/video.mp4",
                 "processing_time": 120.0,
                 "cost": 0.50,
-                "metadata": {}
+                "metadata": {},
             },
         ]
 
@@ -82,11 +78,11 @@ class TestReportGenerator:
         outputs = {
             "step_1_text_to_image": {
                 "path": "/path/to/image.png",
-                "url": "https://example.com/image.png"
+                "url": "https://example.com/image.png",
             },
             "step_2_image_to_video": {
                 "path": "/path/to/video.mp4",
-                "url": "https://example.com/video.mp4"
+                "url": "https://example.com/video.mp4",
             },
         }
 
@@ -97,7 +93,7 @@ class TestReportGenerator:
             outputs=outputs,
             total_cost=0.55,
             total_time=130.5,
-            success=True
+            success=True,
         )
 
         # Verify report structure
@@ -116,9 +112,7 @@ class TestReportGenerator:
         assert summary["completed_steps"] == 2
         assert summary["total_cost_usd"] == 0.55
 
-    def test_create_execution_report_failure(
-        self, report_generator, sample_chain
-    ):
+    def test_create_execution_report_failure(self, report_generator, sample_chain):
         """Test creating a failed execution report."""
         step_results = [
             {
@@ -143,7 +137,7 @@ class TestReportGenerator:
             total_cost=0.05,
             total_time=40.5,
             success=False,
-            error="Step 2 failed: API timeout"
+            error="Step 2 failed: API timeout",
         )
 
         summary = report["execution_summary"]
@@ -151,9 +145,7 @@ class TestReportGenerator:
         assert summary["error"] == "Step 2 failed: API timeout"
         assert summary["completed_steps"] == 1
 
-    def test_create_intermediate_report(
-        self, report_generator, sample_chain
-    ):
+    def test_create_intermediate_report(self, report_generator, sample_chain):
         """Test creating an intermediate progress report."""
         step_results = [
             {
@@ -176,7 +168,7 @@ class TestReportGenerator:
             outputs=outputs,
             total_cost=0.05,
             current_step=1,
-            total_steps=2
+            total_steps=2,
         )
 
         assert report["report_type"] == "intermediate"
@@ -192,7 +184,7 @@ class TestReportGenerator:
                 "execution_summary": {
                     "execution_id": "exec_123456",
                     "chain_name": "test_chain",
-                    "status": "success"
+                    "status": "success",
                 }
             }
 
@@ -214,7 +206,7 @@ class TestReportGenerator:
             report = {
                 "execution_summary": {
                     "execution_id": "exec_789",
-                    "chain_name": "test_chain"
+                    "chain_name": "test_chain",
                 }
             }
 
@@ -233,10 +225,7 @@ class TestReportGenerator:
         with tempfile.TemporaryDirectory() as tmpdir:
             report = {
                 "report_type": "intermediate",
-                "execution_summary": {
-                    "chain_name": "test_chain",
-                    "current_step": 1
-                }
+                "execution_summary": {"chain_name": "test_chain", "current_step": 1},
             }
 
             config = {"output_dir": tmpdir}
@@ -261,7 +250,7 @@ class TestReportGenerator:
             outputs={},
             total_cost=0.55,
             total_time=130.5,
-            success=True
+            success=True,
         )
 
         cost_breakdown = report["cost_breakdown"]
@@ -281,7 +270,7 @@ class TestReportGenerator:
             outputs={},
             total_cost=0.55,
             total_time=130.5,
-            success=True
+            success=True,
         )
 
         metrics = report["performance_metrics"]
@@ -304,7 +293,7 @@ class TestDownloadIntermediateImage:
             assert not intermediates_dir.exists()
 
             # Mock the requests.get to avoid actual HTTP call
-            with patch('requests.get') as mock_get:
+            with patch("requests.get") as mock_get:
                 mock_response = Mock()
                 mock_response.iter_content.return_value = [b"fake image data"]
                 mock_response.raise_for_status = Mock()
@@ -313,7 +302,7 @@ class TestDownloadIntermediateImage:
                 result = report_generator.download_intermediate_image(
                     image_url="https://example.com/image.png",
                     step_name="step_1_text_to_image",
-                    config=config
+                    config=config,
                 )
 
             assert intermediates_dir.exists()
@@ -324,13 +313,13 @@ class TestDownloadIntermediateImage:
             report_generator = ReportGenerator()
             config = {"output_dir": tmpdir}
 
-            with patch('requests.get') as mock_get:
+            with patch("requests.get") as mock_get:
                 mock_get.side_effect = Exception("Network error")
 
                 result = report_generator.download_intermediate_image(
                     image_url="https://example.com/image.png",
                     step_name="step_1_text_to_image",
-                    config=config
+                    config=config,
                 )
 
             assert result is None

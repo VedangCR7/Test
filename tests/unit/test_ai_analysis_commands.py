@@ -5,13 +5,15 @@ Tests the command_utils module and verifies backwards compatibility
 of the ai_analysis_commands module.
 """
 
-import pytest
 from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import patch
 import sys
 
 # Add the package to path for testing
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / "packages" / "services" / "video-tools"))
+sys.path.insert(
+    0,
+    str(Path(__file__).parent.parent.parent / "packages" / "services" / "video-tools"),
+)
 
 
 class TestCommandUtils:
@@ -21,7 +23,7 @@ class TestCommandUtils:
         """Test Gemini status check when available."""
         from video_utils.command_utils import check_and_report_gemini_status
 
-        with patch('video_utils.command_utils.check_gemini_requirements') as mock_check:
+        with patch("video_utils.command_utils.check_gemini_requirements") as mock_check:
             mock_check.return_value = (True, "Gemini API ready")
             result = check_and_report_gemini_status()
 
@@ -33,8 +35,11 @@ class TestCommandUtils:
         """Test Gemini status check when library not installed."""
         from video_utils.command_utils import check_and_report_gemini_status
 
-        with patch('video_utils.command_utils.check_gemini_requirements') as mock_check:
-            mock_check.return_value = (False, "Google GenerativeAI library not installed")
+        with patch("video_utils.command_utils.check_gemini_requirements") as mock_check:
+            mock_check.return_value = (
+                False,
+                "Google GenerativeAI library not installed",
+            )
             result = check_and_report_gemini_status()
 
             assert result is False
@@ -46,7 +51,7 @@ class TestCommandUtils:
         """Test Gemini status check when API key not set."""
         from video_utils.command_utils import check_and_report_gemini_status
 
-        with patch('video_utils.command_utils.check_gemini_requirements') as mock_check:
+        with patch("video_utils.command_utils.check_gemini_requirements") as mock_check:
             mock_check.return_value = (False, "GEMINI_API_KEY not set")
             result = check_and_report_gemini_status()
 
@@ -68,7 +73,7 @@ class TestCommandUtils:
             output_path=None,
             file_finder=lambda p: [test_file],
             media_type="video",
-            supported_extensions={'.mp4'}
+            supported_extensions={".mp4"},
         )
 
         assert result is not None
@@ -91,7 +96,7 @@ class TestCommandUtils:
             output_path=None,
             file_finder=mock_finder,
             media_type="video",
-            supported_extensions={'.mp4'}
+            supported_extensions={".mp4"},
         )
 
         assert result is not None
@@ -106,7 +111,7 @@ class TestCommandUtils:
             output_path=None,
             file_finder=lambda p: [],
             media_type="video",
-            supported_extensions={'.mp4'}
+            supported_extensions={".mp4"},
         )
 
         assert result is None
@@ -125,7 +130,7 @@ class TestCommandUtils:
             output_path=None,
             file_finder=lambda p: [],
             media_type="video",
-            supported_extensions={'.mp4'}
+            supported_extensions={".mp4"},
         )
 
         assert result is None
@@ -141,7 +146,7 @@ class TestCommandUtils:
             output_path=None,
             file_finder=lambda p: [],
             media_type="video",
-            supported_extensions={'.mp4'}
+            supported_extensions={".mp4"},
         )
 
         assert result is None
@@ -163,7 +168,7 @@ class TestCommandUtils:
             output_path=str(output_dir),
             file_finder=lambda p: [test_file],
             media_type="video",
-            supported_extensions={'.mp4'}
+            supported_extensions={".mp4"},
         )
 
         assert result is not None
@@ -174,32 +179,32 @@ class TestCommandUtils:
         """Test result preview is properly truncated."""
         from video_utils.command_utils import show_result_preview
 
-        result = {'description': 'A' * 300}
-        show_result_preview(result, 'description', max_length=200)
+        result = {"description": "A" * 300}
+        show_result_preview(result, "description", max_length=200)
 
         captured = capsys.readouterr()
-        assert '...' in captured.out
+        assert "..." in captured.out
 
     def test_show_result_preview_short_content(self, capsys):
         """Test result preview with short content."""
         from video_utils.command_utils import show_result_preview
 
-        result = {'description': 'Short content'}
-        show_result_preview(result, 'description', max_length=200)
+        result = {"description": "Short content"}
+        show_result_preview(result, "description", max_length=200)
 
         captured = capsys.readouterr()
-        assert 'Short content' in captured.out
-        assert '...' not in captured.out
+        assert "Short content" in captured.out
+        assert "..." not in captured.out
 
     def test_show_result_preview_unknown_type(self, capsys):
         """Test result preview with unknown analysis type."""
         from video_utils.command_utils import show_result_preview
 
-        result = {'description': 'Some content'}
-        show_result_preview(result, 'unknown_type', max_length=200)
+        result = {"description": "Some content"}
+        show_result_preview(result, "unknown_type", max_length=200)
 
         captured = capsys.readouterr()
-        assert captured.out == ''
+        assert captured.out == ""
 
     def test_print_results_summary(self, capsys, tmp_path):
         """Test results summary printing."""
@@ -209,9 +214,9 @@ class TestCommandUtils:
         print_results_summary(5, 2, output_dir)
 
         captured = capsys.readouterr()
-        assert '5 successful' in captured.out
-        assert '2 failed' in captured.out
-        assert 'output' in captured.out
+        assert "5 successful" in captured.out
+        assert "2 failed" in captured.out
+        assert "output" in captured.out
 
     def test_print_results_summary_no_output_dir(self, capsys):
         """Test results summary without output directory."""
@@ -220,16 +225,16 @@ class TestCommandUtils:
         print_results_summary(3, 0)
 
         captured = capsys.readouterr()
-        assert '3 successful' in captured.out
-        assert 'Analysis complete' in captured.out
+        assert "3 successful" in captured.out
+        assert "Analysis complete" in captured.out
 
     def test_analysis_config_defaults(self):
         """Test AnalysisConfig default values."""
         from video_utils.command_utils import AnalysisConfig
 
-        config = AnalysisConfig(analysis_type='description')
+        config = AnalysisConfig(analysis_type="description")
 
-        assert config.analysis_type == 'description'
+        assert config.analysis_type == "description"
         assert config.detailed is False
         assert config.include_timestamps is True
         assert config.speaker_identification is True
@@ -245,7 +250,7 @@ class TestCommandUtils:
             input_dir=tmp_path,
             output_dir=tmp_path / "output",
             output_file=None,
-            files=files
+            files=files,
         )
 
         assert config.input_dir == tmp_path
@@ -259,25 +264,27 @@ class TestVideoCommands:
         """Test video extensions constant is defined."""
         from video_utils.ai_commands.video_commands import VIDEO_EXTENSIONS
 
-        assert '.mp4' in VIDEO_EXTENSIONS
-        assert '.avi' in VIDEO_EXTENSIONS
-        assert '.mov' in VIDEO_EXTENSIONS
-        assert '.mkv' in VIDEO_EXTENSIONS
-        assert '.webm' in VIDEO_EXTENSIONS
+        assert ".mp4" in VIDEO_EXTENSIONS
+        assert ".avi" in VIDEO_EXTENSIONS
+        assert ".mov" in VIDEO_EXTENSIONS
+        assert ".mkv" in VIDEO_EXTENSIONS
+        assert ".webm" in VIDEO_EXTENSIONS
 
     def test_video_analysis_types_defined(self):
         """Test video analysis types are defined."""
         from video_utils.ai_commands.video_commands import VIDEO_ANALYSIS_TYPES
 
-        assert '1' in VIDEO_ANALYSIS_TYPES
-        assert VIDEO_ANALYSIS_TYPES['1'][0] == 'description'
-        assert VIDEO_ANALYSIS_TYPES['2'][0] == 'transcription'
+        assert "1" in VIDEO_ANALYSIS_TYPES
+        assert VIDEO_ANALYSIS_TYPES["1"][0] == "description"
+        assert VIDEO_ANALYSIS_TYPES["2"][0] == "transcription"
 
     def test_cmd_analyze_videos_no_gemini(self, capsys):
         """Test analyze videos fails gracefully without Gemini."""
         from video_utils.ai_commands.video_commands import cmd_analyze_videos
 
-        with patch('video_utils.ai_commands.video_commands.check_and_report_gemini_status') as mock:
+        with patch(
+            "video_utils.ai_commands.video_commands.check_and_report_gemini_status"
+        ) as mock:
             mock.return_value = False
             cmd_analyze_videos()
 
@@ -291,18 +298,18 @@ class TestAudioCommands:
         """Test audio extensions constant is defined."""
         from video_utils.ai_commands.audio_commands import AUDIO_EXTENSIONS
 
-        assert '.mp3' in AUDIO_EXTENSIONS
-        assert '.wav' in AUDIO_EXTENSIONS
-        assert '.m4a' in AUDIO_EXTENSIONS
-        assert '.flac' in AUDIO_EXTENSIONS
+        assert ".mp3" in AUDIO_EXTENSIONS
+        assert ".wav" in AUDIO_EXTENSIONS
+        assert ".m4a" in AUDIO_EXTENSIONS
+        assert ".flac" in AUDIO_EXTENSIONS
 
     def test_audio_analysis_types_defined(self):
         """Test audio analysis types are defined."""
         from video_utils.ai_commands.audio_commands import AUDIO_ANALYSIS_TYPES
 
-        assert '1' in AUDIO_ANALYSIS_TYPES
-        assert AUDIO_ANALYSIS_TYPES['1'][0] == 'description'
-        assert AUDIO_ANALYSIS_TYPES['2'][0] == 'transcription'
+        assert "1" in AUDIO_ANALYSIS_TYPES
+        assert AUDIO_ANALYSIS_TYPES["1"][0] == "description"
+        assert AUDIO_ANALYSIS_TYPES["2"][0] == "transcription"
 
 
 class TestImageCommands:
@@ -312,19 +319,19 @@ class TestImageCommands:
         """Test image extensions constant is defined."""
         from video_utils.ai_commands.image_commands import IMAGE_EXTENSIONS
 
-        assert '.jpg' in IMAGE_EXTENSIONS
-        assert '.jpeg' in IMAGE_EXTENSIONS
-        assert '.png' in IMAGE_EXTENSIONS
-        assert '.webp' in IMAGE_EXTENSIONS
-        assert '.gif' in IMAGE_EXTENSIONS
+        assert ".jpg" in IMAGE_EXTENSIONS
+        assert ".jpeg" in IMAGE_EXTENSIONS
+        assert ".png" in IMAGE_EXTENSIONS
+        assert ".webp" in IMAGE_EXTENSIONS
+        assert ".gif" in IMAGE_EXTENSIONS
 
     def test_image_analysis_types_defined(self):
         """Test image analysis types are defined."""
         from video_utils.ai_commands.image_commands import IMAGE_ANALYSIS_TYPES
 
-        assert '1' in IMAGE_ANALYSIS_TYPES
-        assert IMAGE_ANALYSIS_TYPES['1'][0] == 'description'
-        assert IMAGE_ANALYSIS_TYPES['4'][0] == 'text'
+        assert "1" in IMAGE_ANALYSIS_TYPES
+        assert IMAGE_ANALYSIS_TYPES["1"][0] == "description"
+        assert IMAGE_ANALYSIS_TYPES["4"][0] == "text"
 
 
 class TestBackwardsCompatibility:
@@ -368,17 +375,8 @@ class TestBackwardsCompatibility:
         from video_utils.ai_commands import (
             cmd_analyze_videos,
             cmd_transcribe_videos,
-            cmd_describe_videos,
-            cmd_describe_videos_with_params,
-            cmd_transcribe_videos_with_params,
             cmd_analyze_audio,
-            cmd_transcribe_audio,
-            cmd_describe_audio,
-            cmd_analyze_audio_with_params,
             cmd_analyze_images,
-            cmd_describe_images,
-            cmd_extract_text,
-            cmd_analyze_images_with_params,
         )
 
         assert callable(cmd_analyze_videos)
@@ -391,10 +389,10 @@ class TestBackwardsCompatibility:
         import video_utils.ai_analysis_commands as module
 
         # Check __all__ is defined
-        assert hasattr(module, '__all__')
-        assert 'cmd_analyze_videos' in module.__all__
-        assert 'cmd_analyze_audio' in module.__all__
-        assert 'cmd_analyze_images' in module.__all__
+        assert hasattr(module, "__all__")
+        assert "cmd_analyze_videos" in module.__all__
+        assert "cmd_analyze_audio" in module.__all__
+        assert "cmd_analyze_images" in module.__all__
 
     def test_functions_are_same_objects(self):
         """Test that functions from both modules are the same objects."""

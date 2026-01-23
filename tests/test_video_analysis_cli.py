@@ -6,7 +6,9 @@ from pathlib import Path
 from unittest.mock import patch, MagicMock
 
 # Add package to path
-sys.path.insert(0, str(Path(__file__).parent.parent / "packages" / "core" / "ai_content_pipeline"))
+sys.path.insert(
+    0, str(Path(__file__).parent.parent / "packages" / "core" / "ai_content_pipeline")
+)
 
 from ai_content_pipeline.video_analysis import (
     MODEL_MAP,
@@ -46,7 +48,9 @@ class TestVideoAnalysisModels:
         """FAL models should have google/ prefix."""
         for key, (provider, model_id) in MODEL_MAP.items():
             if provider == "fal":
-                assert model_id.startswith("google/"), f"{key} should have google/ prefix"
+                assert model_id.startswith("google/"), (
+                    f"{key} should have google/ prefix"
+                )
 
 
 class TestGetVideoToolsPath:
@@ -128,11 +132,12 @@ class TestAnalyzeVideoCommand:
     def test_missing_fal_key(self, capsys):
         """Test error handling for missing FAL_KEY."""
         import os
+
         # Mock load_dotenv to do nothing, then clear FAL_KEY
-        with patch('ai_content_pipeline.video_analysis.load_dotenv'):
-            original = os.environ.get('FAL_KEY')
-            if 'FAL_KEY' in os.environ:
-                del os.environ['FAL_KEY']
+        with patch("ai_content_pipeline.video_analysis.load_dotenv"):
+            original = os.environ.get("FAL_KEY")
+            if "FAL_KEY" in os.environ:
+                del os.environ["FAL_KEY"]
 
             try:
                 args = MagicMock()
@@ -151,7 +156,7 @@ class TestAnalyzeVideoCommand:
             finally:
                 # Restore
                 if original:
-                    os.environ['FAL_KEY'] = original
+                    os.environ["FAL_KEY"] = original
 
 
 class TestModelMapping:

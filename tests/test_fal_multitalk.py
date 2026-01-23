@@ -11,13 +11,14 @@ Tests cover:
 import sys
 import warnings
 from pathlib import Path
-from unittest.mock import patch, MagicMock
 
 import pytest
 
 # Add paths for imports
 project_root = Path(__file__).parent.parent
-sys.path.insert(0, str(project_root / "packages" / "providers" / "fal" / "avatar-generation"))
+sys.path.insert(
+    0, str(project_root / "packages" / "providers" / "fal" / "avatar-generation")
+)
 sys.path.insert(0, str(project_root / "packages" / "providers" / "fal" / "avatar"))
 
 
@@ -58,7 +59,7 @@ class TestMultiTalkModel:
         params = model.validate_parameters(
             image_url="https://example.com/image.jpg",
             first_audio_url="https://example.com/audio.mp3",
-            prompt="Test conversation"
+            prompt="Test conversation",
         )
 
         assert params["image_url"] == "https://example.com/image.jpg"
@@ -77,7 +78,7 @@ class TestMultiTalkModel:
             image_url="https://example.com/image.jpg",
             first_audio_url="https://example.com/audio1.mp3",
             prompt="Test",
-            second_audio_url="https://example.com/audio2.mp3"
+            second_audio_url="https://example.com/audio2.mp3",
         )
 
         assert "second_audio_url" in params
@@ -93,7 +94,7 @@ class TestMultiTalkModel:
             model.validate_parameters(
                 image_url=None,
                 first_audio_url="https://example.com/audio.mp3",
-                prompt="Test"
+                prompt="Test",
             )
 
     def test_validate_parameters_missing_first_audio(self):
@@ -106,7 +107,7 @@ class TestMultiTalkModel:
             model.validate_parameters(
                 image_url="https://example.com/image.jpg",
                 first_audio_url=None,
-                prompt="Test"
+                prompt="Test",
             )
 
     def test_validate_parameters_empty_prompt(self):
@@ -119,7 +120,7 @@ class TestMultiTalkModel:
             model.validate_parameters(
                 image_url="https://example.com/image.jpg",
                 first_audio_url="https://example.com/audio.mp3",
-                prompt=""
+                prompt="",
             )
 
     def test_validate_parameters_frame_range_below(self):
@@ -133,7 +134,7 @@ class TestMultiTalkModel:
                 image_url="https://example.com/image.jpg",
                 first_audio_url="https://example.com/audio.mp3",
                 prompt="Test",
-                num_frames=50
+                num_frames=50,
             )
 
     def test_validate_parameters_frame_range_above(self):
@@ -147,7 +148,7 @@ class TestMultiTalkModel:
                 image_url="https://example.com/image.jpg",
                 first_audio_url="https://example.com/audio.mp3",
                 prompt="Test",
-                num_frames=200
+                num_frames=200,
             )
 
     def test_validate_parameters_invalid_resolution(self):
@@ -161,7 +162,7 @@ class TestMultiTalkModel:
                 image_url="https://example.com/image.jpg",
                 first_audio_url="https://example.com/audio.mp3",
                 prompt="Test",
-                resolution="1080p"
+                resolution="1080p",
             )
 
     def test_validate_parameters_invalid_acceleration(self):
@@ -175,7 +176,7 @@ class TestMultiTalkModel:
                 image_url="https://example.com/image.jpg",
                 first_audio_url="https://example.com/audio.mp3",
                 prompt="Test",
-                acceleration="turbo"
+                acceleration="turbo",
             )
 
     def test_cost_estimation_480p_base(self):
@@ -243,7 +244,7 @@ class TestFALAvatarGeneratorMultiTalk:
         from fal_avatar import FALAvatarGenerator
 
         generator = FALAvatarGenerator()
-        assert hasattr(generator, 'generate_conversation')
+        assert hasattr(generator, "generate_conversation")
         assert callable(generator.generate_conversation)
 
     def test_model_recommendation_conversation(self):
@@ -356,7 +357,14 @@ class TestReplicateDeprecation:
         # This test checks that the deprecation warning is in the code
         # Actual warning test requires REPLICATE_API_TOKEN which may not be available
 
-        replicate_gen_path = project_root / "packages" / "providers" / "fal" / "avatar" / "replicate_multitalk_generator.py"
+        replicate_gen_path = (
+            project_root
+            / "packages"
+            / "providers"
+            / "fal"
+            / "avatar"
+            / "replicate_multitalk_generator.py"
+        )
         content = replicate_gen_path.read_text()
 
         assert "DeprecationWarning" in content
@@ -366,26 +374,36 @@ class TestReplicateDeprecation:
     def test_pipeline_replicate_generator_deprecation(self):
         """Test pipeline ReplicateMultiTalkGenerator shows deprecation warning."""
         # Add pipeline path
-        sys.path.insert(0, str(project_root / "packages" / "core" / "ai_content_pipeline"))
+        sys.path.insert(
+            0, str(project_root / "packages" / "core" / "ai_content_pipeline")
+        )
 
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter("always")
 
             try:
-                from ai_content_pipeline.models.avatar import ReplicateMultiTalkGenerator
+                from ai_content_pipeline.models.avatar import (
+                    ReplicateMultiTalkGenerator,
+                )
+
                 # Instantiation triggers the deprecation warning
                 _generator = ReplicateMultiTalkGenerator()
             except (ImportError, ValueError, Exception):
                 # Expected if replicate not installed or no API token
                 # Skip test if we can't instantiate
-                pytest.skip("ReplicateMultiTalkGenerator could not be instantiated (replicate not installed)")
+                pytest.skip(
+                    "ReplicateMultiTalkGenerator could not be instantiated (replicate not installed)"
+                )
 
             # Check that deprecation warning was recorded
             deprecation_warnings = [
-                warning for warning in w
+                warning
+                for warning in w
                 if issubclass(warning.category, DeprecationWarning)
             ]
-            assert len(deprecation_warnings) >= 1, "Expected DeprecationWarning when using ReplicateMultiTalkGenerator"
+            assert len(deprecation_warnings) >= 1, (
+                "Expected DeprecationWarning when using ReplicateMultiTalkGenerator"
+            )
             assert "deprecated" in str(deprecation_warnings[0].message).lower()
 
 
@@ -394,21 +412,28 @@ class TestPipelineMultiTalkGenerator:
 
     def test_pipeline_generator_class_exists(self):
         """Test MultiTalkGenerator class exists in pipeline."""
-        sys.path.insert(0, str(project_root / "packages" / "core" / "ai_content_pipeline"))
+        sys.path.insert(
+            0, str(project_root / "packages" / "core" / "ai_content_pipeline")
+        )
 
         from ai_content_pipeline.models.avatar import MultiTalkGenerator
+
         assert MultiTalkGenerator is not None
 
     def test_pipeline_generator_estimate_cost_480p(self):
         """Test pipeline generator cost estimation for 480p."""
-        sys.path.insert(0, str(project_root / "packages" / "core" / "ai_content_pipeline"))
+        sys.path.insert(
+            0, str(project_root / "packages" / "core" / "ai_content_pipeline")
+        )
 
         from ai_content_pipeline.models.avatar import MultiTalkGenerator
 
         # Create generator (may fail to init FAL, but class should exist)
         try:
             generator = MultiTalkGenerator()
-            cost = generator.estimate_cost("multitalk", resolution="480p", num_frames=81)
+            cost = generator.estimate_cost(
+                "multitalk", resolution="480p", num_frames=81
+            )
             assert cost == pytest.approx(0.10, rel=0.01)
         except Exception:
             # If FAL init fails, just test that class exists
@@ -416,20 +441,26 @@ class TestPipelineMultiTalkGenerator:
 
     def test_pipeline_generator_estimate_cost_720p(self):
         """Test pipeline generator cost estimation for 720p."""
-        sys.path.insert(0, str(project_root / "packages" / "core" / "ai_content_pipeline"))
+        sys.path.insert(
+            0, str(project_root / "packages" / "core" / "ai_content_pipeline")
+        )
 
         from ai_content_pipeline.models.avatar import MultiTalkGenerator
 
         try:
             generator = MultiTalkGenerator()
-            cost = generator.estimate_cost("multitalk", resolution="720p", num_frames=81)
+            cost = generator.estimate_cost(
+                "multitalk", resolution="720p", num_frames=81
+            )
             assert cost == pytest.approx(0.20, rel=0.01)
         except Exception:
             pass
 
     def test_pipeline_generator_available_models(self):
         """Test pipeline generator returns correct available models."""
-        sys.path.insert(0, str(project_root / "packages" / "core" / "ai_content_pipeline"))
+        sys.path.insert(
+            0, str(project_root / "packages" / "core" / "ai_content_pipeline")
+        )
 
         from ai_content_pipeline.models.avatar import MultiTalkGenerator
 

@@ -12,6 +12,18 @@ from rich.table import Table
 from ai_content_platform import __version__, __description__
 from ai_content_platform.utils.logger import setup_logging, get_logger
 
+# Import monitoring system
+try:
+    from ai_content_pipeline.monitoring.metrics import (
+        get_registry, record_request, record_error, increment_counter, record_timer
+    )
+    from ai_content_pipeline.monitoring.metrics_config import initialize_alert_rules
+    from ai_content_pipeline.monitoring.health_checks import register_default_health_checks
+    from ai_content_pipeline.monitoring.api import initialize_monitoring_api, shutdown_monitoring_api
+    MONITORING_AVAILABLE = True
+except ImportError:
+    MONITORING_AVAILABLE = False
+
 
 # Global console for Rich output
 console = Console()
@@ -49,7 +61,32 @@ def cli(ctx, version, log_level, log_file, config_dir):
     """
     # Setup logging
     setup_logging(level=log_level, log_file=log_file)
-    
+    logger = get_logger(__name__)
+
+    # Initialize monitoring system if available
+    monitoring_enabled = False
+    if MONITORING_AVAILABLE:
+        try:
+            # Initialize alert rules and health checks
+            initialize_alert_rules()
+            register_default_health_checks()
+
+            # Start monitoring API server if configured
+            monitoring_host = os.environ.get("MONITORING_HOST", "localhost")
+            monitoring_port = int(os.environ.get("MONITORING_PORT", "8080"))
+
+            if os.environ.get("ENABLE_MONITORING_API", "false").lower() == "true":
+                initialize_monitoring_api(monitoring_host, monitoring_port)
+                logger.info(f"Monitoring API server started on http://{monitoring_host}:{monitoring_port}")
+                monitoring_enabled = True
+
+            # Record CLI startup
+            increment_counter("cli.startups")
+            logger.info("CLI monitoring system initialized")
+
+        except Exception as e:
+            logger.warning(f"Failed to initialize monitoring system: {e}")
+
     # Ensure context object exists
     ctx.ensure_object(dict)
     
@@ -57,6 +94,7 @@ def cli(ctx, version, log_level, log_file, config_dir):
     ctx.obj["log_level"] = log_level
     ctx.obj["log_file"] = log_file
     ctx.obj["config_dir"] = config_dir
+    ctx.obj["monitoring_enabled"] = monitoring_enabled
     
     if version:
         show_version_info()
@@ -114,12 +152,36 @@ def check_service_availability():
     return services
 
 
+def cli_monitor_operation(operation_name: str):
+    """CLI monitoring decorator for operations."""
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            if MONITORING_AVAILABLE:
+                import time
+                start_time = time.time()
+                try:
+                    increment_counter(f"cli.operations_total", tags={"operation": operation_name})
+                    result = func(*args, **kwargs)
+                    increment_counter(f"cli.operations_success", tags={"operation": operation_name})
+                    record_timer(f"cli.operation_duration.{operation_name}", time.time() - start_time)
+                    return result
+                except Exception as e:
+                    increment_counter(f"cli.operations_failed", tags={"operation": operation_name})
+                    record_error("cli_operation_error", str(e), tags={"operation": operation_name})
+                    raise
+            else:
+                return func(*args, **kwargs)
+        return wrapper
+    return decorator
+
+
 @cli.command()
 @click.option(
-    "--output", 
+    "--output",
     type=click.Path(),
     help="Output directory for generated files"
 )
+@cli_monitor_operation("init")
 def init(output):
     """Initialize a new AI Content Platform project."""
     logger = get_logger(__name__)

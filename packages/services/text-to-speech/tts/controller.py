@@ -15,6 +15,15 @@ from ..utils.validators import validate_text_input, validate_voice_settings, val
 from .voice_manager import VoiceManager
 from .audio_processor import AudioProcessor
 
+# Import monitoring system
+try:
+    from packages.core.ai_content_pipeline.ai_content_pipeline.monitoring.metrics import (
+        record_request, record_error, record_timer, increment_counter, set_gauge
+    )
+    MONITORING_AVAILABLE = True
+except ImportError:
+    MONITORING_AVAILABLE = False
+
 
 class ElevenLabsTTSController:
     """
@@ -61,7 +70,7 @@ class ElevenLabsTTSController:
     ) -> Union[bytes, bool]:
         """
         Convert text to speech
-        
+
         Args:
             text: Text to convert
             voice_id: Voice ID to use
@@ -71,10 +80,16 @@ class ElevenLabsTTSController:
             speed: Speech speed (0.25-4.0)
             output_file: Output file path (optional)
             stream: Whether to stream the audio
-            
+
         Returns:
             Audio bytes or success status
         """
+        start_time = time.time()
+
+        if MONITORING_AVAILABLE:
+            increment_counter("tts.requests_total", tags={"model": model.value, "voice_id": voice_id})
+            set_gauge("tts.active_requests", 1, tags={"service": "elevenlabs"})
+
         # Validate inputs
         is_valid, error = validate_text_input(text)
         if not is_valid:
@@ -127,13 +142,30 @@ class ElevenLabsTTSController:
             
             # Process response
             if stream:
-                return self.audio_processor.process_streaming_response(response, output_file)
+                result = self.audio_processor.process_streaming_response(response, output_file)
             else:
-                return self.audio_processor.process_regular_response(response, output_file)
-                
+                result = self.audio_processor.process_regular_response(response, output_file)
+
+            # Record success metrics
+            if MONITORING_AVAILABLE and result:
+                increment_counter("tts.requests_success", tags={"model": model.value, "voice_id": voice_id})
+                record_timer("tts.request_duration", time.time() - start_time, tags={"model": model.value, "voice_id": voice_id})
+
+            return result
+
         except Exception as e:
             print(f"Error in text-to-speech conversion: {e}")
+
+            # Record error metrics
+            if MONITORING_AVAILABLE:
+                increment_counter("tts.requests_failed", tags={"model": model.value, "voice_id": voice_id})
+                record_error("tts_request_error", str(e), tags={"model": model.value, "voice_id": voice_id})
+
             return False
+
+        finally:
+            if MONITORING_AVAILABLE:
+                set_gauge("tts.active_requests", 0, tags={"service": "elevenlabs"})
     
     def text_to_speech_with_timing_control(
         self,

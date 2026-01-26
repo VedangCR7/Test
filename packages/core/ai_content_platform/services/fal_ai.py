@@ -15,6 +15,15 @@ from ai_content_platform.core.exceptions import StepExecutionError
 from ai_content_platform.utils.logger import get_logger
 from ai_content_platform.utils.file_manager import FileManager
 
+# Import monitoring system
+try:
+    from ai_content_pipeline.monitoring.metrics import (
+        record_request, record_error, record_timer, increment_counter, set_gauge
+    )
+    MONITORING_AVAILABLE = True
+except ImportError:
+    MONITORING_AVAILABLE = False
+
 
 class BaseFALStep(BaseStep):
     """Base class for FAL AI steps."""
@@ -80,7 +89,11 @@ class FALTextToImageStep(BaseFALStep):
     async def execute(self, context: Dict[str, Any]) -> StepResult:
         """Execute text-to-image generation."""
         start_time = time.time()
-        
+
+        if MONITORING_AVAILABLE:
+            increment_counter("fal_ai.requests_total", tags={"operation": "text_to_image", "model": self.config.parameters.get("model", "unknown")})
+            set_gauge("fal_ai.active_requests", 1, tags={"service": "text_to_image"})
+
         try:
             self.logger.step(f"Generating image: {self.config.name}")
             
@@ -120,6 +133,11 @@ class FALTextToImageStep(BaseFALStep):
             image_url = result["images"][0]["url"]
             output_path = await self._download_result(image_url, output_dir)
             
+            # Record success metrics
+            if MONITORING_AVAILABLE:
+                increment_counter("fal_ai.requests_success", tags={"operation": "text_to_image", "model": model})
+                record_timer("fal_ai.request_duration", time.time() - start_time, tags={"operation": "text_to_image", "model": model})
+
             return self._create_result(
                 success=True,
                 output_path=str(output_path),
@@ -132,15 +150,25 @@ class FALTextToImageStep(BaseFALStep):
                 },
                 execution_time=time.time() - start_time
             )
-            
+
         except Exception as e:
             error_msg = f"Text-to-image generation failed: {str(e)}"
             self.logger.error(error_msg)
+
+            # Record error metrics
+            if MONITORING_AVAILABLE:
+                increment_counter("fal_ai.requests_failed", tags={"operation": "text_to_image", "model": self.config.parameters.get("model", "unknown")})
+                record_error("fal_ai_request_error", str(e), tags={"operation": "text_to_image"})
+
             return self._create_result(
                 success=False,
                 error=error_msg,
                 execution_time=time.time() - start_time
             )
+
+        finally:
+            if MONITORING_AVAILABLE:
+                set_gauge("fal_ai.active_requests", 0, tags={"service": "text_to_image"})
     
     def estimate_cost(self) -> float:
         """Estimate cost for text-to-image generation."""

@@ -19,6 +19,62 @@ from ..models.prompt_generation import UnifiedPromptGenerator
 from ..models.image_to_image import UnifiedImageToImageGenerator
 from ..utils.file_manager import FileManager
 from ..config.constants import SUPPORTED_MODELS, DEFAULT_CHAIN_CONFIG
+from ..monitoring.metrics import (
+    get_registry, record_request, record_error, record_data_processed,
+    increment_counter, set_gauge, record_timer, record_histogram
+)
+from ..monitoring.metrics_config import initialize_alert_rules
+from ..monitoring.health_checks import register_default_health_checks
+from ..monitoring.api import initialize_monitoring_api, shutdown_monitoring_api
+import functools
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+def monitor_operation(operation_name: str):
+    """
+    Decorator to monitor pipeline operations with automatic metrics collection.
+
+    Tracks execution time, success/failure rates, and errors.
+    """
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(self, *args, **kwargs):
+            start_time = time.time()
+            success = False
+
+            try:
+                # Record operation start
+                increment_counter(f"pipeline.operations_total", tags={"operation": operation_name})
+                set_gauge(f"pipeline.active_operations.{operation_name}", 1, tags={"operation": operation_name})
+
+                result = func(self, *args, **kwargs)
+                success = True
+
+                # Record success metrics
+                increment_counter(f"pipeline.operations_success", tags={"operation": operation_name})
+
+                return result
+
+            except Exception as e:
+                # Record error metrics
+                record_error(f"pipeline_operation_error", str(e), tags={"operation": operation_name})
+                increment_counter(f"pipeline.operations_failed", tags={"operation": operation_name})
+                raise
+
+            finally:
+                # Record timing and cleanup
+                execution_time = time.time() - start_time
+                record_timer(f"pipeline.operation_duration.{operation_name}", execution_time)
+                record_histogram(f"pipeline.operation_duration_histogram.{operation_name}", execution_time)
+
+                set_gauge(f"pipeline.active_operations.{operation_name}", 0, tags={"operation": operation_name})
+
+                logger.info(f"Operation '{operation_name}' completed in {execution_time:.2f}s (success: {success})")
+
+        return wrapper
+    return decorator
 
 
 class AIPipelineManager:
@@ -28,26 +84,115 @@ class AIPipelineManager:
     Handles chain creation, execution, cost estimation, and result management.
     """
     
-    def __init__(self, base_dir: str = None):
+    def __init__(self, base_dir: str = None, enable_monitoring: bool = True):
         """
         Initialize the pipeline manager.
-        
+
         Args:
             base_dir: Base directory for pipeline operations
+            enable_monitoring: Whether to enable comprehensive monitoring
         """
         self.base_dir = Path(base_dir) if base_dir else Path.cwd()
         self.output_dir = self.base_dir / "output"
         self.temp_dir = self.output_dir / "temp"
-        
+        self.enable_monitoring = enable_monitoring
+
         # Initialize components
         self.file_manager = FileManager(self.base_dir)
         self.executor = ChainExecutor(self.file_manager)
-        
+
+        # Initialize monitoring system if enabled
+        if self.enable_monitoring:
+            self._initialize_monitoring()
+
+        # Record manager initialization
+        if self.enable_monitoring:
+            increment_counter("pipeline.manager_initializations")
+            set_gauge("pipeline.manager_active", 1)
+            logger.info("AI Pipeline Manager initialized with monitoring enabled")
+
+    def _initialize_monitoring(self) -> None:
+        """Initialize comprehensive monitoring system."""
+        try:
+            # Initialize alert rules
+            initialize_alert_rules()
+
+            # Register health checks
+            register_default_health_checks()
+
+            # Start monitoring API server if configured
+            monitoring_host = os.environ.get("MONITORING_HOST", "localhost")
+            monitoring_port = int(os.environ.get("MONITORING_PORT", "8080"))
+
+            if os.environ.get("ENABLE_MONITORING_API", "true").lower() == "true":
+                initialize_monitoring_api(monitoring_host, monitoring_port)
+                logger.info(f"Monitoring API server started on http://{monitoring_host}:{monitoring_port}")
+
+            # Record successful initialization
+            increment_counter("monitoring.system_initializations")
+
+        except Exception as e:
+            logger.error(f"Failed to initialize monitoring system: {e}")
+            # Don't fail manager initialization if monitoring fails
+            record_error("monitoring_initialization_error", str(e))
+
+    def get_monitoring_status(self) -> Dict[str, Any]:
+        """
+        Get comprehensive monitoring system status.
+
+        Returns:
+            Dict with monitoring system health and metrics
+        """
+        if not self.enable_monitoring:
+            return {"enabled": False, "message": "Monitoring system disabled"}
+
+        try:
+            registry = get_registry()
+            health_checks = registry.run_health_checks()
+            overall_score = registry.get_overall_health_score()
+
+            return {
+                "enabled": True,
+                "overall_health_score": overall_score,
+                "health_checks": {
+                    name: {
+                        "status": check.status.value,
+                        "score": check.score,
+                        "message": check.message
+                    }
+                    for name, check in health_checks.items()
+                },
+                "active_alerts": len(registry.get_active_alerts()),
+                "total_metrics_collections": registry.get_metrics_snapshot().get("total_collections", 0),
+                "uptime_seconds": registry.get_metrics_snapshot().get("uptime_seconds", 0)
+            }
+        except Exception as e:
+            logger.error(f"Failed to get monitoring status: {e}")
+            return {"enabled": True, "error": str(e)}
+
+    def shutdown_monitoring(self) -> None:
+        """Shutdown monitoring system gracefully."""
+        if self.enable_monitoring:
+            try:
+                shutdown_monitoring_api()
+                set_gauge("pipeline.manager_active", 0)
+                logger.info("Monitoring system shutdown completed")
+            except Exception as e:
+                logger.error(f"Error during monitoring shutdown: {e}")
+
         # Initialize model generators
         self.text_to_image = UnifiedTextToImageGenerator()
         self.image_understanding = UnifiedImageUnderstandingGenerator()
         self.prompt_generation = UnifiedPromptGenerator()
         self.image_to_image = UnifiedImageToImageGenerator()
+
+        # Initialize monitoring
+        initialize_alert_rules()
+        self.metrics_registry = get_registry()
+
+        # Record initialization
+        increment_counter("pipeline.initializations")
+        set_gauge("pipeline.status", 1)  # 1 = healthy
         
         # Create directories
         self.output_dir.mkdir(exist_ok=True)
@@ -55,6 +200,7 @@ class AIPipelineManager:
         
         print(f"✅ AI Pipeline Manager initialized (base: {self.base_dir})")
     
+    @monitor_operation("create_chain_from_config")
     def create_chain_from_config(self, config_path: str) -> ContentCreationChain:
         """
         Create a content creation chain from configuration file.
@@ -120,6 +266,7 @@ class AIPipelineManager:
         
         return ContentCreationChain(name, pipeline_steps)
     
+    @monitor_operation("execute_chain")
     def execute_chain(
         self,
         chain: ContentCreationChain,
@@ -128,18 +275,26 @@ class AIPipelineManager:
     ) -> ChainResult:
         """
         Execute a content creation chain.
-        
+
         Args:
             chain: ContentCreationChain to execute
             input_data: Initial input data (text, image path, or video path)
             **kwargs: Additional execution parameters
-            
+
         Returns:
             ChainResult with execution results
         """
+        start_time = time.time()
+        chain_name = chain.name or "unnamed_chain"
+
+        # Record chain execution attempt
+        increment_counter("pipeline.chains_executed_total", tags={"chain": chain_name})
+
         # Validate chain
         errors = chain.validate()
         if errors:
+            record_error("validation_error", f"Chain validation failed: {'; '.join(errors)}",
+                        tags={"chain": chain_name})
             return ChainResult(
                 success=False,
                 steps_completed=0,
@@ -149,24 +304,56 @@ class AIPipelineManager:
                 outputs={},
                 error=f"Chain validation failed: {'; '.join(errors)}"
             )
-        
-        print(f"🚀 Executing chain: {chain.name}")
-        print(f"📝 Input ({chain.get_initial_input_type()}): {input_data[:100]}{'...' if len(input_data) > 100 else ''}")
-        
+
+        print(f"[EXECUTE] Executing chain: {chain.name}")
+        print(f"[INPUT] Input ({chain.get_initial_input_type()}): {input_data[:100]}{'...' if len(input_data) > 100 else ''}")
+
         # Execute chain
         try:
-            return self.executor.execute(chain, input_data, **kwargs)
+            result = self.executor.execute(chain, input_data, **kwargs)
+
+            # Record execution metrics
+            execution_time = time.time() - start_time
+            record_timer("pipeline.chain_execution_duration", execution_time,
+                        tags={"chain": chain_name, "success": str(result.success)})
+
+            if result.success:
+                increment_counter("pipeline.chains_completed", tags={"chain": chain_name})
+                record_data_processed("pipeline", result.steps_completed, execution_time,
+                                    tags={"chain": chain_name})
+
+                # Update success rate gauge
+                total_chains = self.metrics_registry.get_counter("pipeline.chains_executed_total")
+                completed_chains = self.metrics_registry.get_counter("pipeline.chains_completed")
+                if total_chains > 0:
+                    success_rate = completed_chains / total_chains
+                    set_gauge("pipeline.success_rate", success_rate)
+
+            else:
+                record_error("execution_error", result.error or "Unknown execution error",
+                           tags={"chain": chain_name})
+
+            return result
+
         except Exception as e:
+            execution_time = time.time() - start_time
+            error_msg = f"Execution failed: {str(e)}"
+
+            record_error("execution_exception", error_msg, tags={"chain": chain_name})
+            record_timer("pipeline.chain_execution_duration", execution_time,
+                        tags={"chain": chain_name, "success": "false"})
+
             return ChainResult(
                 success=False,
                 steps_completed=0,
                 total_steps=len(chain.steps),
                 total_cost=0.0,
-                total_time=0.0,
+                total_time=execution_time,
                 outputs={},
-                error=f"Execution failed: {str(e)}"
+                error=error_msg
             )
     
+    @monitor_operation("quick_create_video")
     def quick_create_video(
         self,
         text: str,
